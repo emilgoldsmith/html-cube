@@ -1,0 +1,31 @@
+{
+  "plugins": ["cypress", "chai-friendly", "@typescript-eslint", "mocha"],
+  "extends": [
+    "esnext",
+    "plugin:@typescript-eslint/eslint-recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:chai-friendly/recommended",
+    "plugin:cypress/recommended",
+    "prettier",
+    "plugin:mocha/recommended"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "rules": {
+    "cypress/no-force": "error",
+    // Can't get the configuration to work it seems and don't really care much, typescript checks it for us
+    "import/no-unresolved": "off",
+    // Use the typescript one
+    "no-useless-constructor": "off",
+    "@typescript-eslint/no-useless-constructor": "error",
+    // arrow functions is fine
+    "@typescript-eslint/no-empty-function": "off",
+    // We don't prefer default export
+    "import/prefer-default-export": "off",
+    "import/no-default-export": "error",
+    // Avoid the conflicts between a mocha rule and prefer-arrow-callback
+    "prefer-arrow-callback": "off",
+    "mocha/prefer-arrow-callback": "error"
+  },
+  "globals": { "Parameters": false, "ReturnType": false },
+  "ignorePatterns": "*.d.ts"
+}

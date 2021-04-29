@@ -1,6 +1,10 @@
 module Algorithm exposing (Algorithm, Turn(..), TurnDirection(..), TurnLength(..), Turnable(..), allTurnDirections, allTurnLengths, allTurnables, allTurns, append, appendTo, aufs, build, empty, extractInternals, fromString, inverse)
 
--- import Parser.Advanced as Parser exposing ((|.), (|=), Parser)
+{-| Documentation to come
+
+@docs Algorithm, Turn, TurnDirection, TurnLength, Turnable, allTurnDirections, allTurnLengths, allTurnables, allTurns, append, appendTo, aufs, build, empty, extractInternals, fromString, inverse
+
+-}
 
 import List.Nonempty
 import Monads.ListM as ListM
@@ -12,14 +16,20 @@ import Utils.Enumerator
 -- ALGORITHM MODEL
 
 
+{-| Placeholder
+-}
 type Algorithm
     = Algorithm (List Turn)
 
 
+{-| Placeholder
+-}
 type Turn
     = Turn Turnable TurnLength TurnDirection
 
 
+{-| Placeholder
+-}
 type Turnable
     = -- Single face turns
       U
@@ -38,12 +48,16 @@ type Turnable
     | Z
 
 
+{-| Placeholder
+-}
 type TurnLength
     = OneQuarter
     | Halfway
     | ThreeQuarters
 
 
+{-| Placeholder
+-}
 type TurnDirection
     = Clockwise
     | CounterClockwise
@@ -53,6 +67,8 @@ type TurnDirection
 -- HELPERS
 
 
+{-| Placeholder
+-}
 extractInternals : Algorithm -> List Turn
 extractInternals alg =
     case alg of
@@ -60,11 +76,15 @@ extractInternals alg =
             turnList
 
 
+{-| Placeholder
+-}
 build : List Turn -> Algorithm
 build =
     Algorithm
 
 
+{-| Placeholder
+-}
 empty : Algorithm
 empty =
     Algorithm []
@@ -84,6 +104,8 @@ append (Algorithm a) (Algorithm b) =
     Algorithm (b ++ a)
 
 
+{-| Placeholder
+-}
 aufs : List.Nonempty.Nonempty Algorithm
 aufs =
     List.Nonempty.Nonempty
@@ -94,6 +116,8 @@ aufs =
         ]
 
 
+{-| Placeholder
+-}
 inverse : Algorithm -> Algorithm
 inverse =
     let
@@ -114,6 +138,8 @@ inverse =
     map <| List.reverse >> List.map flipTurn
 
 
+{-| Placeholder
+-}
 fromString : String -> Result String Algorithm
 fromString string =
     Parser.run algParser string
@@ -124,6 +150,8 @@ fromString string =
 -- PARSER
 
 
+{-| Placeholder
+-}
 type Problem
     = ExpectingTurnable
     | ExpectingNumQuarterTurns
@@ -132,6 +160,8 @@ type Problem
     | EmptyAlgorithm
 
 
+{-| Placeholder
+-}
 algParser : Parser Never Problem Algorithm
 algParser =
     let
@@ -227,6 +257,8 @@ algParser =
     Parser.succeed Algorithm |= Parser.loop [] looper |> Parser.andThen verifyNotEmpty
 
 
+{-| Placeholder
+-}
 renderError : String -> List (Parser.DeadEnd Never Problem) -> String
 renderError string deadEnds =
     let
@@ -236,6 +268,8 @@ renderError string deadEnds =
     string ++ "    " ++ (String.join ". " <| List.map renderDeadEnd deadEnds)
 
 
+{-| Placeholder
+-}
 renderProblem : Problem -> String
 renderProblem problem =
     case problem of

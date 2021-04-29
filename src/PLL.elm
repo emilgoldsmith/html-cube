@@ -1,10 +1,18 @@
 module PLL exposing (Algorithms, PLL(..), allPlls, getAlg, getLetters, referenceAlgs)
 
+{-| Documentation to come
+
+@docs Algorithms, PLL, allPlls, getAlg, getLetters, referenceAlgs
+
+-}
+
 import Algorithm
 import List.Nonempty
 import Utils.Enumerator
 
 
+{-| Placeholder
+-}
 type PLL
     = -- Edges only
       H
@@ -32,6 +40,8 @@ type PLL
     | Y
 
 
+{-| Placeholder
+-}
 type alias Algorithms =
     { -- Edges only
       h : Algorithm.Algorithm
@@ -62,6 +72,8 @@ type alias Algorithms =
     }
 
 
+{-| Placeholder
+-}
 getLetters : PLL -> String
 getLetters pll =
     case pll of
@@ -213,6 +225,8 @@ allPlls =
             List.Nonempty.Nonempty x xs
 
 
+{-| Placeholder
+-}
 getAlg : PLL -> Algorithm.Algorithm
 getAlg pll =
     case pll of

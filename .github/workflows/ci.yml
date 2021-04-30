@@ -13,6 +13,7 @@ jobs:
       elm_test_version: 0.19.0
       elm_format_version: 0.8.4
       elm_verify_examples_version: 5.0.0
+      elm_analyse_version: 0.16.5
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -25,7 +26,7 @@ jobs:
       - name: Cache npm globals
         uses: actions/cache@v2
         env:
-          cache-name: npm-globals-v1-${{ env.elm_version }}-${{ env.elm_test_version }}-${{ env.elm_format_version }}-${{ env.elm_verify_examples_version }}
+          cache-name: npm-globals-v1-${{ env.elm_version }}-${{ env.elm_test_version }}-${{ env.elm_format_version }}-${{ env.elm_verify_examples_version }}-${{ env.elm_analyse_version }}
         with:
           path: |
             ~/.npm
@@ -40,7 +41,8 @@ jobs:
             elm@$ELM_VERSION \
             elm-test@$ELM_TEST_VERSION \
             elm-format@$ELM_FORMAT_VERSION \
-            elm-verify-examples@$ELM_VERIFY_EXAMPLES_VERSION
+            elm-verify-examples@$ELM_VERIFY_EXAMPLES_VERSION \
+            elm-analyse@$ELM_ANALYSE_VERSION
 
           echo 'PATH="$PATH:$(npm bin --global)"' >> ~/.bashrc
 

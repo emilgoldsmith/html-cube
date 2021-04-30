@@ -47,7 +47,7 @@ jobs:
           echo 'PATH="$PATH:$(npm bin --global)"' >> ~/.bashrc
 
       - name: Compiles everything
-        run: ./scripts/checks/compiles-everything
+        run: ./scripts/checks/compiles-everything.sh
 
       - name: Assert elm-verify-examples is up to date
         run: ./scripts/checks/elm-verify-examples.sh && ./scripts/helpers/check-for-uncommitted-changes.sh

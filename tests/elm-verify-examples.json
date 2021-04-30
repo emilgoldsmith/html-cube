@@ -1,4 +1,11 @@
 {
   "root": "../src",
-  "tests": ["Algorithm", "Cube", "PLL"]
+  "tests": [
+    "Algorithm",
+    "Cube",
+    "Cube.Advanced",
+    "Cube.Advanced.Types",
+    "Internal.Cube",
+    "PLL"
+  ]
 }

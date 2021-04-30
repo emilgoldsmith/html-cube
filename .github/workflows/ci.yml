@@ -1,0 +1,81 @@
+name: CI
+on:
+  push:
+    branches: main
+  pull_request: {}
+
+jobs:
+  lint-and-unit-test:
+    name: Lint And Unit Test
+    runs-on: ubuntu-20.04
+    env:
+      elm_version: 0.19.0
+      elm_test_version: 0.19.0
+      elm_format_version: 0.8.4
+      elm_verify_examples_version: 5.0.0
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Use Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 15
+
+      - name: Cache npm globals
+        uses: actions/cache@v2
+        env:
+          cache-name: npm-globals-v1-${{ env.elm_version }}-${{ env.elm_test_version }}-${{ env.elm_format_version }}-${{ env.elm_verify_examples_version }}
+        with:
+          path: |
+            ~/.npm
+          key: ${{ runner.os }}-${{ env.cache-name }}
+          # Note we purposefully don't specify fallback restore keys.
+          # Explanation: https://glebbahmutov.com/blog/do-not-let-cypress-cache-snowball/
+
+      - name: Install Elm globals through npm
+        shell: bash
+        run: |
+          npm install -g \
+            elm@$ELM_VERSION \
+            elm_test@$ELM_TEST_VERSION \
+            elm_format@$ELM_FORMAT_VERSION \
+            elm_verify_examples@$ELM_VERIFY_EXAMPLES_VERSION
+
+          echo 'PATH="$PATH:$(npm bin --global)"' >> ~/.bashrc
+
+      - name: Assert elm-verify-examples is up to date
+        run: ./scripts/checks/elm-verify-examples.sh && ./scripts/helpers/check-for-uncommitted-changes.sh
+
+      - name: Run elm-format
+        run: ./scripts/checks/elm-format.sh
+
+      - name: Run elm-analyse
+        run: ./scripts/checks/elm-analyse.sh
+
+      - name: Run unit tests
+        run: ./scripts/checks/elm-test.sh
+
+      - name: Handle Yarn caching
+        uses: actions/cache@v2
+        env:
+          cache-name: yarn-cache-v1
+        with:
+          path: |
+            ~/.cache/yarn
+          key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('end-to-end-tests/**/yarn.lock')}}
+          # Note we purposefully don't specify fallback restore keys.
+          # Explanation: https://glebbahmutov.com/blog/do-not-let-cypress-cache-snowball/
+
+      - name: Install Cypress Dependencies
+        working-directory: end-to-end-tests
+        run: yarn
+
+      - name: Run Prettier on Cypress Code
+        run: ./scripts/checks/prettier.sh
+
+      - name: Run Eslint on Cypress Code
+        run: ./scripts/checks/eslint.sh
+
+      - name: Run Typescript Type Checking on Cypress Code
+        run: ./scripts/checks/typescript.sh

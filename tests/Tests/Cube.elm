@@ -1,7 +1,9 @@
-module Tests.Cube exposing (applyAlgorithmTests, flipTests, testHelperTests)
+module Tests.Cube exposing (applyAlgorithmTests, testHelperTests)
 
 import Algorithm
-import Cube exposing (Color(..))
+import Cube
+import Cube.Advanced
+import Cube.Advanced.Types as CubeTypes exposing (Color(..))
 import Expect
 import Expect.Extra
 import Fuzz
@@ -118,7 +120,7 @@ applyAlgorithmTests =
         , test "solved cube has correct colors" <|
             \_ ->
                 Cube.solved
-                    |> Cube.render
+                    |> Cube.Advanced.render
                     |> Expect.Extra.equalCubeRenderings solvedCubeRendering
         , test "U performs expected transformation" <|
             \_ ->
@@ -139,7 +141,7 @@ applyAlgorithmTests =
                 in
                 Cube.solved
                     |> Cube.applyAlgorithm alg
-                    |> Cube.render
+                    |> Cube.Advanced.render
                     |> Expect.Extra.equalCubeRenderings expectedRendering
         , test "D performs expected transformation" <|
             \_ ->
@@ -160,7 +162,7 @@ applyAlgorithmTests =
                 in
                 Cube.solved
                     |> Cube.applyAlgorithm alg
-                    |> Cube.render
+                    |> Cube.Advanced.render
                     |> Expect.Extra.equalCubeRenderings expectedRendering
         , test "L performs expected transformation" <|
             \_ ->
@@ -181,7 +183,7 @@ applyAlgorithmTests =
                 in
                 Cube.solved
                     |> Cube.applyAlgorithm alg
-                    |> Cube.render
+                    |> Cube.Advanced.render
                     |> Expect.Extra.equalCubeRenderings expectedRendering
         , test "R performs expected transformation" <|
             \_ ->
@@ -202,7 +204,7 @@ applyAlgorithmTests =
                 in
                 Cube.solved
                     |> Cube.applyAlgorithm alg
-                    |> Cube.render
+                    |> Cube.Advanced.render
                     |> Expect.Extra.equalCubeRenderings expectedRendering
         , test "F performs expected transformation" <|
             \_ ->
@@ -223,7 +225,7 @@ applyAlgorithmTests =
                 in
                 Cube.solved
                     |> Cube.applyAlgorithm alg
-                    |> Cube.render
+                    |> Cube.Advanced.render
                     |> Expect.Extra.equalCubeRenderings expectedRendering
         , test "B performs expected transformation" <|
             \_ ->
@@ -244,7 +246,7 @@ applyAlgorithmTests =
                 in
                 Cube.solved
                     |> Cube.applyAlgorithm alg
-                    |> Cube.render
+                    |> Cube.Advanced.render
                     |> Expect.Extra.equalCubeRenderings expectedRendering
         , test "M performs expected transformation" <|
             \_ ->
@@ -265,7 +267,7 @@ applyAlgorithmTests =
                 in
                 Cube.solved
                     |> Cube.applyAlgorithm alg
-                    |> Cube.render
+                    |> Cube.Advanced.render
                     |> Expect.Extra.equalCubeRenderings expectedRendering
         , test "S performs expected transformation" <|
             \_ ->
@@ -286,7 +288,7 @@ applyAlgorithmTests =
                 in
                 Cube.solved
                     |> Cube.applyAlgorithm alg
-                    |> Cube.render
+                    |> Cube.Advanced.render
                     |> Expect.Extra.equalCubeRenderings expectedRendering
         , test "E performs expected transformation" <|
             \_ ->
@@ -307,7 +309,7 @@ applyAlgorithmTests =
                 in
                 Cube.solved
                     |> Cube.applyAlgorithm alg
-                    |> Cube.render
+                    |> Cube.Advanced.render
                     |> Expect.Extra.equalCubeRenderings expectedRendering
         , test "x performs expected transformation" <|
             \_ ->
@@ -358,7 +360,7 @@ applyAlgorithmTests =
                 in
                 Cube.solved
                     |> Cube.applyAlgorithm alg
-                    |> Cube.render
+                    |> Cube.Advanced.render
                     |> Expect.Extra.equalCubeRenderings expectedRendering
         , test "y performs expected transformation" <|
             \_ ->
@@ -409,7 +411,7 @@ applyAlgorithmTests =
                 in
                 Cube.solved
                     |> Cube.applyAlgorithm alg
-                    |> Cube.render
+                    |> Cube.Advanced.render
                     |> Expect.Extra.equalCubeRenderings expectedRendering
         , test "z performs expected transformation" <|
             \_ ->
@@ -460,112 +462,11 @@ applyAlgorithmTests =
                 in
                 Cube.solved
                     |> Cube.applyAlgorithm alg
-                    |> Cube.render
+                    |> Cube.Advanced.render
                     |> Expect.Extra.equalCubeRenderings expectedRendering
         , test "0-length algorithm is identity operation to simplify types despite 0 length algorithm not making much sense" <|
             \_ ->
                 Cube.solved |> Cube.applyAlgorithm Algorithm.empty |> Expect.equal Cube.solved
-        ]
-
-
-flipTests : Test
-flipTests =
-    describe "flip"
-        [ test "works for solved cube" <|
-            \_ ->
-                let
-                    expectedRendering =
-                        { -- U Corners
-                          ufr = { plainCubie | u = DownColor, f = LeftColor, r = BackColor }
-                        , ufl = { plainCubie | u = DownColor, f = LeftColor, l = FrontColor }
-                        , ubl = { plainCubie | u = DownColor, b = RightColor, l = FrontColor }
-                        , ubr = { plainCubie | u = DownColor, b = RightColor, r = BackColor }
-
-                        -- D Corners
-                        , dbr = { plainCubie | d = UpColor, b = RightColor, r = BackColor }
-                        , dbl = { plainCubie | d = UpColor, b = RightColor, l = FrontColor }
-                        , dfl = { plainCubie | d = UpColor, f = LeftColor, l = FrontColor }
-                        , dfr = { plainCubie | d = UpColor, f = LeftColor, r = BackColor }
-
-                        -- M Edges
-                        , uf = { plainCubie | u = DownColor, f = LeftColor }
-                        , ub = { plainCubie | u = DownColor, b = RightColor }
-                        , db = { plainCubie | d = UpColor, b = RightColor }
-                        , df = { plainCubie | d = UpColor, f = LeftColor }
-
-                        -- S Edges
-                        , dl = { plainCubie | d = UpColor, l = FrontColor }
-                        , dr = { plainCubie | d = UpColor, r = BackColor }
-                        , ur = { plainCubie | u = DownColor, r = BackColor }
-                        , ul = { plainCubie | u = DownColor, l = FrontColor }
-
-                        -- E Edges
-                        , fl = { plainCubie | f = LeftColor, l = FrontColor }
-                        , fr = { plainCubie | f = LeftColor, r = BackColor }
-                        , br = { plainCubie | b = RightColor, r = BackColor }
-                        , bl = { plainCubie | b = RightColor, l = FrontColor }
-
-                        -- Centers
-                        , u = { plainCubie | u = DownColor }
-                        , d = { plainCubie | d = UpColor }
-                        , f = { plainCubie | f = LeftColor }
-                        , b = { plainCubie | b = RightColor }
-                        , l = { plainCubie | l = FrontColor }
-                        , r = { plainCubie | r = BackColor }
-                        }
-                in
-                Cube.solved
-                    |> Cube.flip
-                    |> Cube.render
-                    |> Expect.Extra.equalCubeRenderings expectedRendering
-        , test "works after U' applied" <|
-            \_ ->
-                let
-                    expectedRendering =
-                        { -- U Corners
-                          ufr = { plainCubie | u = DownColor, f = LeftColor, r = BackColor }
-                        , ufl = { plainCubie | u = DownColor, f = LeftColor, l = FrontColor }
-                        , ubl = { plainCubie | u = DownColor, b = RightColor, l = FrontColor }
-                        , ubr = { plainCubie | u = DownColor, b = RightColor, r = BackColor }
-
-                        -- D Corners
-                        , dbr = { plainCubie | d = UpColor, b = FrontColor, r = RightColor }
-                        , dbl = { plainCubie | d = UpColor, b = FrontColor, l = LeftColor }
-                        , dfl = { plainCubie | d = UpColor, f = BackColor, l = LeftColor }
-                        , dfr = { plainCubie | d = UpColor, f = BackColor, r = RightColor }
-
-                        -- M Edges
-                        , uf = { plainCubie | u = DownColor, f = LeftColor }
-                        , ub = { plainCubie | u = DownColor, b = RightColor }
-                        , db = { plainCubie | d = UpColor, b = FrontColor }
-                        , df = { plainCubie | d = UpColor, f = BackColor }
-
-                        -- S Edges
-                        , dl = { plainCubie | d = UpColor, l = LeftColor }
-                        , dr = { plainCubie | d = UpColor, r = RightColor }
-                        , ur = { plainCubie | u = DownColor, r = BackColor }
-                        , ul = { plainCubie | u = DownColor, l = FrontColor }
-
-                        -- E Edges
-                        , fl = { plainCubie | f = LeftColor, l = FrontColor }
-                        , fr = { plainCubie | f = LeftColor, r = BackColor }
-                        , br = { plainCubie | b = RightColor, r = BackColor }
-                        , bl = { plainCubie | b = RightColor, l = FrontColor }
-
-                        -- Centers
-                        , u = { plainCubie | u = DownColor }
-                        , d = { plainCubie | d = UpColor }
-                        , f = { plainCubie | f = LeftColor }
-                        , b = { plainCubie | b = RightColor }
-                        , l = { plainCubie | l = FrontColor }
-                        , r = { plainCubie | r = BackColor }
-                        }
-                in
-                Cube.solved
-                    |> Cube.applyAlgorithm (Algorithm.build [ Algorithm.Turn Algorithm.U Algorithm.OneQuarter Algorithm.CounterClockwise ])
-                    |> Cube.flip
-                    |> Cube.render
-                    |> Expect.Extra.equalCubeRenderings expectedRendering
         ]
 
 

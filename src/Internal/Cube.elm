@@ -1,4 +1,4 @@
-module Internal.Cube exposing (..)
+module Internal.Cube exposing (Cube, applyAlgorithm, centerLocations, cornerLocations, edgeLocations, faces, render, solved, viewUBLWithLetters, viewUFRNoLetters, viewUFRWithLetters)
 
 import Algorithm
 import Cube.Advanced.Types exposing (..)

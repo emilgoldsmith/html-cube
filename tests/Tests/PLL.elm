@@ -1,7 +1,9 @@
 module Tests.PLL exposing (suite)
 
 import Algorithm
-import Cube exposing (Color(..))
+import Cube
+import Cube.Advanced
+import Cube.Advanced.Types as CubeTypes exposing (Color(..))
 import Expect
 import List.Nonempty
 import PLL
@@ -271,7 +273,7 @@ suite =
         ]
 
 
-expectEqualDisregardingAUF : Cube.Rendering -> Algorithm.Algorithm -> Expect.Expectation
+expectEqualDisregardingAUF : CubeTypes.Rendering -> Algorithm.Algorithm -> Expect.Expectation
 expectEqualDisregardingAUF expectedRendering alg =
     let
         algWithAllAufs =
@@ -281,7 +283,7 @@ expectEqualDisregardingAUF expectedRendering alg =
 
         candidates =
             algWithAllAufs
-                |> List.Nonempty.map ((\x -> Cube.applyAlgorithm x Cube.solved) >> Cube.render)
+                |> List.Nonempty.map ((\x -> Cube.applyAlgorithm x Cube.solved) >> Cube.Advanced.render)
     in
     List.filter ((==) expectedRendering) (List.Nonempty.toList candidates)
         |> List.length
@@ -295,7 +297,7 @@ expectEqualDisregardingAUF expectedRendering alg =
             )
 
 
-getShortestDiff : List.Nonempty.Nonempty Cube.Rendering -> Cube.Rendering -> String
+getShortestDiff : List.Nonempty.Nonempty CubeTypes.Rendering -> CubeTypes.Rendering -> String
 getShortestDiff candidates expected =
     let
         diffs =

@@ -88,3 +88,22 @@ jobs:
 
       - name: Run Typescript Type Checking on Cypress Code
         run: ./scripts/checks/typescript.sh
+
+  publish-elm-package:
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    needs: [lint-and-unit-tests] # make sure all your other jobs succeed before trying to publish
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install Elm
+        uses: jorelali/setup-elm@v3
+        with:
+          elm-version: 0.19.0
+
+      - uses: dillonkearns/elm-publish-action@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-elm: /usr/local/bin/elm

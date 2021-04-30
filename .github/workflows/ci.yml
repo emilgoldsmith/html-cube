@@ -38,9 +38,9 @@ jobs:
         run: |
           npm install -g \
             elm@$ELM_VERSION \
-            elm_test@$ELM_TEST_VERSION \
-            elm_format@$ELM_FORMAT_VERSION \
-            elm_verify_examples@$ELM_VERIFY_EXAMPLES_VERSION
+            elm-test@$ELM_TEST_VERSION \
+            elm-format@$ELM_FORMAT_VERSION \
+            elm-verify-examples@$ELM_VERIFY_EXAMPLES_VERSION
 
           echo 'PATH="$PATH:$(npm bin --global)"' >> ~/.bashrc
 

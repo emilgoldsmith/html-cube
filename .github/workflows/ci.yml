@@ -21,7 +21,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: 11
+          node-version: 10
 
       - name: Cache npm globals
         uses: actions/cache@v2
@@ -38,11 +38,11 @@ jobs:
         shell: bash
         run: |
           npm install -g \
-            elm@$ELM_VERSION \
-            elm-test@$ELM_TEST_VERSION \
-            elm-format@$ELM_FORMAT_VERSION \
-            elm-verify-examples@$ELM_VERIFY_EXAMPLES_VERSION \
-            elm-analyse@$ELM_ANALYSE_VERSION
+            elm@$elm_version \
+            elm-test@$elm_test_version \
+            elm-format@$elm_format_version \
+            elm-verify-examples@$elm_verify_examples_version \
+            elm-analyse@$elm_analyse_version
 
           echo 'PATH="$PATH:$(npm bin --global)"' >> ~/.bashrc
 

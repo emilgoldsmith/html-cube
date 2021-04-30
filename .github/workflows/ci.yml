@@ -91,7 +91,7 @@ jobs:
 
   publish-elm-package:
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-    needs: [lint-and-unit-tests] # make sure all your other jobs succeed before trying to publish
+    needs: [lint-and-unit-test] # make sure all your other jobs succeed before trying to publish
     runs-on: ubuntu-20.04
 
     steps:

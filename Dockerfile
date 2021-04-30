@@ -9,15 +9,23 @@ ENV ELM_FORMAT_VERSION 0.8.4
 ENV ELM_VERIFY_EXAMPLES_VERSION 5.0.0
 ENV ELM_DOC_PREVIEW_VERSION 5.0.5
 
+# Taken from https://github.com/elm/compiler/blob/master/installers/linux/README.md
+RUN curl -L -o elm.gz https://github.com/elm/compiler/releases/download/$ELM_VERSION/binary-for-linux-64-bit.gz \
+    && gunzip elm.gz \
+    && chmod +x elm \
+    && mv ./elm /usr/local/bin \
+    # Smoke test
+    && elm --version \
+    && echo "Installed Elm Successfully"
+
 USER $USERNAME
 
 WORKDIR /home/$USERNAME
 
 ENV HISTFILE /home/$USERNAME/bash_history/bash_history.txt
 
-# Install the development specific ones
 RUN yarn global add \
-        elm@$ELM_VERSION \
+        # elm@$ELM_VERSION \
         elm-test@$ELM_TEST_VERSION \
         elm-format@$ELM_FORMAT_VERSION \
         elm-verify-examples@$ELM_VERIFY_EXAMPLES_VERSION \

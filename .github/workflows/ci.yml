@@ -35,7 +35,7 @@ jobs:
           # Explanation: https://glebbahmutov.com/blog/do-not-let-cypress-cache-snowball/
 
       - name: Install Elm
-        uses: justgook/setup-elm@1.2.0
+        uses: jorelali/setup-elm@v3
         with:
           elm-version: ${{ env.elm_version }}
 

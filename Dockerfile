@@ -25,7 +25,6 @@ WORKDIR /home/$USERNAME
 ENV HISTFILE /home/$USERNAME/bash_history/bash_history.txt
 
 RUN yarn global add \
-        # elm@$ELM_VERSION \
         elm-test@$ELM_TEST_VERSION \
         elm-format@$ELM_FORMAT_VERSION \
         elm-verify-examples@$ELM_VERIFY_EXAMPLES_VERSION \

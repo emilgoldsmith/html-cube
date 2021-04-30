@@ -6,5 +6,4 @@ ROOT_DIRECTORY=$(dirname "${BASH_SOURCE[0]}")/../..
 
 cd $ROOT_DIRECTORY
 
-output=$(git status --porcelain) && [ -z "$output" ]
-echo "No Uncommitted Changes"
+elm make src/Algorithm src/Cube src/PLL src/Cube/Advanced src/Cube/Advanced/Types --output=/dev/null

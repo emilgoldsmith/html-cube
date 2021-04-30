@@ -52,7 +52,7 @@ run_check \
     "You have uncommitted changes. Commit (probably with '--amend') or 'git stash' them and try pushing again" \
     ../helpers/check-for-uncommitted-changes.sh
 
-run_check "Checking Compilation" "Compilation Failed" elm make ../../src/*.elm ../../src/Cube/Advanced.elm ../../src/Cube/Advanced/Types.elm --output=/dev/null
+run_check "Checking Compilation" "Compilation Failed" ./compiles-everything.sh
 
 run_check "Checking Linting" "Elm analyse found linting issues" ./elm-analyse.sh
 

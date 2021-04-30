@@ -6,4 +6,4 @@ ROOT_DIRECTORY=$(dirname "${BASH_SOURCE[0]}")/../..
 
 cd $ROOT_DIRECTORY
 
-elm make src/Algorithm src/Cube src/PLL src/Cube/Advanced src/Cube/Advanced/Types --output=/dev/null
+elm make src/Algorithm.elm src/Cube.elm src/PLL.elm src/Cube/Advanced.elm src/Cube/Advanced/Types.elm --output=/dev/null

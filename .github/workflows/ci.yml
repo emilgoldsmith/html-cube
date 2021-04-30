@@ -89,7 +89,8 @@ jobs:
       - name: Run Typescript Type Checking on Cypress Code
         run: ./scripts/checks/typescript.sh
 
-  publish-elm-package:
+  publish-new-version:
+    name: Publish New Version
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     needs: [lint-and-unit-test] # make sure all your other jobs succeed before trying to publish
     runs-on: ubuntu-20.04

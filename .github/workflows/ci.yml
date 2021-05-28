@@ -105,6 +105,20 @@ jobs:
           elm-version: 0.19.0
 
       - uses: dillonkearns/elm-publish-action@v1
+        id: publish
+        continue-on-error: true
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-elm: /usr/local/bin/elm
+
+      # Retry as it seems like specifically the tag isn't picked up quickly enough
+      # so we wait a bit and try again
+      - name: Wait before retrying
+        if: ${{ steps.publish.outcome == 'failure' }}
+        run: sleep 10
+
+      - uses: dillonkearns/elm-publish-action@v1
+        if: ${{ steps.publish.outcome == 'failure' }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-elm: /usr/local/bin/elm

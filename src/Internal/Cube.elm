@@ -1440,17 +1440,17 @@ centerLocations =
 -- Exports
 
 
-viewUFRWithLetters : Int -> Cube -> Html msg
+viewUFRWithLetters : List (Attribute msg) -> Int -> Cube -> Html msg
 viewUFRWithLetters =
     getCubeHtml ufrRotation identity
 
 
-viewUFRNoLetters : Int -> Cube -> Html msg
+viewUFRNoLetters : List (Attribute msg) -> Int -> Cube -> Html msg
 viewUFRNoLetters =
     getCubeHtml ufrRotation (always noText)
 
 
-viewUBLWithLetters : Int -> Cube -> Html msg
+viewUBLWithLetters : List (Attribute msg) -> Int -> Cube -> Html msg
 viewUBLWithLetters =
     getCubeHtml (YRotateDegrees 180 :: ufrRotation) identity
 
@@ -1528,20 +1528,22 @@ type alias Size =
     Int
 
 
-getCubeHtml : Transformation -> (TextOnFaces msg -> TextOnFaces msg) -> Size -> Cube -> Html msg
-getCubeHtml rotation mapText size cube =
+getCubeHtml : Transformation -> (TextOnFaces msg -> TextOnFaces msg) -> List (Attribute msg) -> Size -> Cube -> Html msg
+getCubeHtml rotation mapText attributes size cube =
     let
         rendering =
             render cube
     in
     div
-        [ style "width" (px <| containerSideLength size)
-        , style "height" (px <| containerSideLength size)
-        , style "display" "flex"
-        , style "justify-content" "center"
-        , style "align-items" "center"
-        , style "perspective" "0"
-        ]
+        ([ style "width" (px <| containerSideLength size)
+         , style "height" (px <| containerSideLength size)
+         , style "display" "flex"
+         , style "justify-content" "center"
+         , style "align-items" "center"
+         , style "perspective" "0"
+         ]
+            ++ attributes
+        )
         [ div
             [ style "width" (px <| wholeCubeSideLength size)
             , style "height" (px <| wholeCubeSideLength size)

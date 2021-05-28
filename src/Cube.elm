@@ -40,20 +40,20 @@ solved =
 
 {-| Placeholder
 -}
-viewUBLWithLetters : Int -> Cube -> Html.Html msg
-viewUBLWithLetters size (Cube cube) =
-    Internal.Cube.viewUBLWithLetters size cube
+viewUBLWithLetters : List (Html.Attribute msg) -> Int -> Cube -> Html.Html msg
+viewUBLWithLetters attributes size (Cube cube) =
+    Internal.Cube.viewUBLWithLetters attributes size cube
 
 
 {-| Placeholder
 -}
-viewUFRNoLetters : Int -> Cube -> Html.Html msg
-viewUFRNoLetters size (Cube cube) =
-    Internal.Cube.viewUFRNoLetters size cube
+viewUFRNoLetters : List (Html.Attribute msg) -> Int -> Cube -> Html.Html msg
+viewUFRNoLetters attributes size (Cube cube) =
+    Internal.Cube.viewUFRNoLetters attributes size cube
 
 
 {-| Placeholder
 -}
-viewUFRWithLetters : Int -> Cube -> Html.Html msg
-viewUFRWithLetters size (Cube cube) =
-    Internal.Cube.viewUFRWithLetters size cube
+viewUFRWithLetters : List (Html.Attribute msg) -> Int -> Cube -> Html.Html msg
+viewUFRWithLetters attributes size (Cube cube) =
+    Internal.Cube.viewUFRWithLetters attributes size cube

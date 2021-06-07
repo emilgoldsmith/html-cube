@@ -1,6 +1,6 @@
 module PLL exposing
     ( PLL(..), allPlls
-    , Algorithms, getAlg, referenceAlgs
+    , Algorithms, getAlgorithm, referenceAlgorithms
     , getLetters
     )
 
@@ -14,7 +14,7 @@ module PLL exposing
 
 # Collections
 
-@docs Algorithms, getAlg, referenceAlgs
+@docs Algorithms, getAlgorithm, referenceAlgorithms
 
 
 # Helpers
@@ -279,71 +279,71 @@ in order to get the algorithm for a case passed to a function
     getAlg referenceAlgs Y --> referenceAlgs.y
 
 -}
-getAlg : Algorithms -> PLL -> Algorithm.Algorithm
-getAlg algorithms pll =
+getAlgorithm : Algorithms -> PLL -> Algorithm.Algorithm
+getAlgorithm algorithms pll =
     case pll of
         H ->
-            referenceAlgs.h
+            algorithms.h
 
         Ua ->
-            referenceAlgs.ua
+            algorithms.ua
 
         Ub ->
-            referenceAlgs.ub
+            algorithms.ub
 
         Z ->
-            referenceAlgs.z
+            algorithms.z
 
         Aa ->
-            referenceAlgs.aa
+            algorithms.aa
 
         Ab ->
-            referenceAlgs.ab
+            algorithms.ab
 
         E ->
-            referenceAlgs.e
+            algorithms.e
 
         F ->
-            referenceAlgs.f
+            algorithms.f
 
         Ga ->
-            referenceAlgs.ga
+            algorithms.ga
 
         Gb ->
-            referenceAlgs.gb
+            algorithms.gb
 
         Gc ->
-            referenceAlgs.gc
+            algorithms.gc
 
         Gd ->
-            referenceAlgs.gd
+            algorithms.gd
 
         Ja ->
-            referenceAlgs.ja
+            algorithms.ja
 
         Jb ->
-            referenceAlgs.jb
+            algorithms.jb
 
         Na ->
-            referenceAlgs.na
+            algorithms.na
 
         Nb ->
-            referenceAlgs.nb
+            algorithms.nb
 
         Ra ->
-            referenceAlgs.ra
+            algorithms.ra
 
         Rb ->
-            referenceAlgs.rb
+            algorithms.rb
 
         T ->
-            referenceAlgs.t
+            algorithms.t
 
         V ->
-            referenceAlgs.v
+            algorithms.v
 
         Y ->
-            referenceAlgs.y
+            algorithms.y
 
 
 {-| Plls verified to be correct so they can be used to verify user selected plls
@@ -429,8 +429,8 @@ correct equivalents to the code below.
     --> Ok referenceAlgs.y
 
 -}
-referenceAlgs : Algorithms
-referenceAlgs =
+referenceAlgorithms : Algorithms
+referenceAlgorithms =
     { h =
         Algorithm.build
             [ Algorithm.Turn Algorithm.R Algorithm.Halfway Algorithm.Clockwise

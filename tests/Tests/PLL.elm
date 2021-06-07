@@ -1,4 +1,4 @@
-module Tests.PLL exposing (referenceAlgTests)
+module Tests.PLL exposing (getAlgorithmTests, referenceAlgTests)
 
 import Algorithm
 import Cube
@@ -13,7 +13,7 @@ import TestHelpers.Cube exposing (plainCubie, solvedCubeRendering)
 
 referenceAlgTests : Test
 referenceAlgTests =
-    describe "ReferenceAlgs"
+    describe "referenceAlgs"
         [ test "H perm" <|
             \_ ->
                 let
@@ -24,7 +24,7 @@ referenceAlgTests =
                             |> (\x -> { x | ul = { plainCubie | u = UpColor, l = RightColor } })
                             |> (\x -> { x | ur = { plainCubie | u = UpColor, r = LeftColor } })
                 in
-                PLL.referenceAlgs.h
+                PLL.referenceAlgorithms.h
                     |> expectEqualDisregardingAUF expectedRendering
         , test "Ua perm" <|
             \_ ->
@@ -35,7 +35,7 @@ referenceAlgTests =
                             |> (\x -> { x | ur = { plainCubie | u = UpColor, r = FrontColor } })
                             |> (\x -> { x | ul = { plainCubie | u = UpColor, l = RightColor } })
                 in
-                PLL.referenceAlgs.ua
+                PLL.referenceAlgorithms.ua
                     |> expectEqualDisregardingAUF expectedRendering
         , test "Ub perm" <|
             \_ ->
@@ -46,7 +46,7 @@ referenceAlgTests =
                             |> (\x -> { x | ul = { plainCubie | u = UpColor, l = FrontColor } })
                             |> (\x -> { x | ur = { plainCubie | u = UpColor, r = LeftColor } })
                 in
-                PLL.referenceAlgs.ub
+                PLL.referenceAlgorithms.ub
                     |> expectEqualDisregardingAUF expectedRendering
         , test "Z perm" <|
             \_ ->
@@ -58,7 +58,7 @@ referenceAlgTests =
                             |> (\x -> { x | ul = { plainCubie | u = UpColor, l = BackColor } })
                             |> (\x -> { x | ub = { plainCubie | u = UpColor, b = LeftColor } })
                 in
-                PLL.referenceAlgs.z
+                PLL.referenceAlgorithms.z
                     |> expectEqualDisregardingAUF expectedRendering
         , test "Aa perm" <|
             \_ ->
@@ -69,7 +69,7 @@ referenceAlgTests =
                             |> (\x -> { x | ubl = { plainCubie | u = UpColor, b = FrontColor, l = RightColor } })
                             |> (\x -> { x | ubr = { plainCubie | u = UpColor, b = LeftColor, r = BackColor } })
                 in
-                PLL.referenceAlgs.aa
+                PLL.referenceAlgorithms.aa
                     |> expectEqualDisregardingAUF expectedRendering
         , test "Ab perm" <|
             \_ ->
@@ -80,7 +80,7 @@ referenceAlgTests =
                             |> (\x -> { x | ubr = { plainCubie | u = UpColor, b = RightColor, r = FrontColor } })
                             |> (\x -> { x | ubl = { plainCubie | u = UpColor, b = RightColor, l = BackColor } })
                 in
-                PLL.referenceAlgs.ab
+                PLL.referenceAlgorithms.ab
                     |> expectEqualDisregardingAUF expectedRendering
         , test "E perm" <|
             \_ ->
@@ -92,7 +92,7 @@ referenceAlgTests =
                             |> (\x -> { x | ubl = { plainCubie | u = UpColor, b = LeftColor, l = FrontColor } })
                             |> (\x -> { x | ufl = { plainCubie | u = UpColor, f = LeftColor, l = BackColor } })
                 in
-                PLL.referenceAlgs.e
+                PLL.referenceAlgorithms.e
                     |> expectEqualDisregardingAUF expectedRendering
         , test "F perm" <|
             \_ ->
@@ -104,7 +104,7 @@ referenceAlgTests =
                             |> (\x -> { x | ub = { plainCubie | u = UpColor, b = FrontColor } })
                             |> (\x -> { x | uf = { plainCubie | u = UpColor, f = BackColor } })
                 in
-                PLL.referenceAlgs.f
+                PLL.referenceAlgorithms.f
                     |> expectEqualDisregardingAUF expectedRendering
         , test "Ga perm" <|
             \_ ->
@@ -118,7 +118,7 @@ referenceAlgTests =
                             |> (\x -> { x | ur = { plainCubie | u = UpColor, r = FrontColor } })
                             |> (\x -> { x | ub = { plainCubie | u = UpColor, b = RightColor } })
                 in
-                PLL.referenceAlgs.ga
+                PLL.referenceAlgorithms.ga
                     |> expectEqualDisregardingAUF expectedRendering
         , test "Gb perm" <|
             \_ ->
@@ -132,7 +132,7 @@ referenceAlgTests =
                             |> (\x -> { x | ub = { plainCubie | u = UpColor, b = FrontColor } })
                             |> (\x -> { x | ur = { plainCubie | u = UpColor, r = BackColor } })
                 in
-                PLL.referenceAlgs.gb
+                PLL.referenceAlgorithms.gb
                     |> expectEqualDisregardingAUF expectedRendering
         , test "Gc perm" <|
             \_ ->
@@ -146,7 +146,7 @@ referenceAlgTests =
                             |> (\x -> { x | ub = { plainCubie | u = UpColor, b = LeftColor } })
                             |> (\x -> { x | ur = { plainCubie | u = UpColor, r = BackColor } })
                 in
-                PLL.referenceAlgs.gc
+                PLL.referenceAlgorithms.gc
                     |> expectEqualDisregardingAUF expectedRendering
         , test "Gd perm" <|
             \_ ->
@@ -160,7 +160,7 @@ referenceAlgTests =
                             |> (\x -> { x | ur = { plainCubie | u = UpColor, r = LeftColor } })
                             |> (\x -> { x | ub = { plainCubie | u = UpColor, b = RightColor } })
                 in
-                PLL.referenceAlgs.gd
+                PLL.referenceAlgorithms.gd
                     |> expectEqualDisregardingAUF expectedRendering
         , test "Ja perm" <|
             \_ ->
@@ -172,7 +172,7 @@ referenceAlgTests =
                             |> (\x -> { x | ub = { plainCubie | u = UpColor, b = RightColor } })
                             |> (\x -> { x | ur = { plainCubie | u = UpColor, r = BackColor } })
                 in
-                PLL.referenceAlgs.ja
+                PLL.referenceAlgorithms.ja
                     |> expectEqualDisregardingAUF expectedRendering
         , test "Jb perm" <|
             \_ ->
@@ -184,7 +184,7 @@ referenceAlgTests =
                             |> (\x -> { x | uf = { plainCubie | u = UpColor, f = RightColor } })
                             |> (\x -> { x | ur = { plainCubie | u = UpColor, r = FrontColor } })
                 in
-                PLL.referenceAlgs.jb
+                PLL.referenceAlgorithms.jb
                     |> expectEqualDisregardingAUF expectedRendering
         , test "Na perm" <|
             \_ ->
@@ -196,7 +196,7 @@ referenceAlgTests =
                             |> (\x -> { x | uf = { plainCubie | u = UpColor, f = BackColor } })
                             |> (\x -> { x | ub = { plainCubie | u = UpColor, b = FrontColor } })
                 in
-                PLL.referenceAlgs.na
+                PLL.referenceAlgorithms.na
                     |> expectEqualDisregardingAUF expectedRendering
         , test "Nb perm" <|
             \_ ->
@@ -208,7 +208,7 @@ referenceAlgTests =
                             |> (\x -> { x | ul = { plainCubie | u = UpColor, l = RightColor } })
                             |> (\x -> { x | ur = { plainCubie | u = UpColor, r = LeftColor } })
                 in
-                PLL.referenceAlgs.nb
+                PLL.referenceAlgorithms.nb
                     |> expectEqualDisregardingAUF expectedRendering
         , test "Ra perm" <|
             \_ ->
@@ -220,7 +220,7 @@ referenceAlgTests =
                             |> (\x -> { x | ub = { plainCubie | u = UpColor, b = LeftColor } })
                             |> (\x -> { x | ul = { plainCubie | u = UpColor, l = BackColor } })
                 in
-                PLL.referenceAlgs.ra
+                PLL.referenceAlgorithms.ra
                     |> expectEqualDisregardingAUF expectedRendering
         , test "Rb perm" <|
             \_ ->
@@ -232,7 +232,7 @@ referenceAlgTests =
                             |> (\x -> { x | uf = { plainCubie | u = UpColor, f = LeftColor } })
                             |> (\x -> { x | ul = { plainCubie | u = UpColor, l = FrontColor } })
                 in
-                PLL.referenceAlgs.rb
+                PLL.referenceAlgorithms.rb
                     |> expectEqualDisregardingAUF expectedRendering
         , test "T perm" <|
             \_ ->
@@ -244,7 +244,7 @@ referenceAlgTests =
                             |> (\x -> { x | ur = { plainCubie | u = UpColor, r = LeftColor } })
                             |> (\x -> { x | ul = { plainCubie | u = UpColor, l = RightColor } })
                 in
-                PLL.referenceAlgs.t
+                PLL.referenceAlgorithms.t
                     |> expectEqualDisregardingAUF expectedRendering
         , test "V perm" <|
             \_ ->
@@ -256,7 +256,7 @@ referenceAlgTests =
                             |> (\x -> { x | uf = { plainCubie | u = UpColor, f = LeftColor } })
                             |> (\x -> { x | ul = { plainCubie | u = UpColor, l = FrontColor } })
                 in
-                PLL.referenceAlgs.v
+                PLL.referenceAlgorithms.v
                     |> expectEqualDisregardingAUF expectedRendering
         , test "Y perm" <|
             \_ ->
@@ -268,8 +268,28 @@ referenceAlgTests =
                             |> (\x -> { x | uf = { plainCubie | u = UpColor, f = RightColor } })
                             |> (\x -> { x | ur = { plainCubie | u = UpColor, r = FrontColor } })
                 in
-                PLL.referenceAlgs.y
+                PLL.referenceAlgorithms.y
                     |> expectEqualDisregardingAUF expectedRendering
+        ]
+
+
+getAlgorithmTests : Test
+getAlgorithmTests =
+    describe "getAlgorithm"
+        [ test "gets the algorithm from the provided algorithm set" <|
+            \_ ->
+                let
+                    referenceAlgorithms =
+                        PLL.referenceAlgorithms
+
+                    expectedAlgorithm =
+                        Algorithm.build [ Algorithm.Turn Algorithm.M Algorithm.OneQuarter Algorithm.CounterClockwise ]
+
+                    algorithmSet =
+                        { referenceAlgorithms | aa = expectedAlgorithm }
+                in
+                PLL.getAlgorithm algorithmSet PLL.Aa
+                    |> Expect.equal expectedAlgorithm
         ]
 
 

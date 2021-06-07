@@ -17,10 +17,11 @@ import List.Nonempty
 
 spec0 : Test.Test
 spec0 =
-    Test.test "#allPlls: \n\n    List.Nonempty.length allPlls\n    --> 21" <|
+    Test.test "#allPlls: \n\n    -- All the PLLs are there!\n    List.Nonempty.length allPlls\n    --> 21" <|
         \() ->
             Expect.equal
                 (
+                -- All the PLLs are there!
                 List.Nonempty.length allPlls
                 )
                 (

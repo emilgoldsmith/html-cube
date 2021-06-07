@@ -1,4 +1,4 @@
-module AUF exposing (AUF(..), all, fromString, toAlgorithm, toString)
+module AUF exposing (AUF(..), toAlgorithm, all, toString, fromString)
 
 {-| Types and helpers to deal with Adjust U Face (AUF), which
 are the moves needed to adjust the U face to the right angle
@@ -6,6 +6,9 @@ for executing your algorithms for several algorithm sets such
 as OLL and PLL. See
 <https://www.speedsolving.com/wiki/index.php/AUF>
 for more information
+
+@docs AUF, toAlgorithm, all, toString, fromString
+
 -}
 
 import Algorithm exposing (Algorithm)
@@ -13,6 +16,8 @@ import List.Nonempty
 import Utils.Enumerator
 
 
+{-| Placeholder
+-}
 type AUF
     = None
     | Clockwise
@@ -20,6 +25,8 @@ type AUF
     | CounterClockwise
 
 
+{-| Placeholder
+-}
 toAlgorithm : AUF -> Algorithm
 toAlgorithm auf =
     case auf of
@@ -89,11 +96,15 @@ all =
             List.Nonempty.Nonempty x xs
 
 
+{-| Placeholder
+-}
 toString : AUF -> String
 toString =
     toAlgorithm >> Algorithm.toString
 
 
+{-| Placeholder
+-}
 fromString : String -> Result String AUF
 fromString stringValue =
     if

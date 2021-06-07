@@ -1,11 +1,8 @@
-module Algorithm exposing
-    ( Algorithm, Turn(..), TurnDirection(..), TurnLength(..), Turnable(..), allTurnDirections, allTurnLengths, allTurnables, allTurns, append, appendTo, build, empty, fromString, inverse
-    , toString, toTurnList
-    )
+module Algorithm exposing (Algorithm, Turn(..), TurnDirection(..), TurnLength(..), Turnable(..), allTurnDirections, allTurnLengths, allTurnables, allTurns, append, appendTo, build, empty, toTurnList, fromString, inverse, toString)
 
 {-| Documentation to come
 
-@docs Algorithm, Turn, TurnDirection, TurnLength, Turnable, allTurnDirections, allTurnLengths, allTurnables, allTurns, append, appendTo, build, empty, extractInternals, fromString, inverse
+@docs Algorithm, Turn, TurnDirection, TurnLength, Turnable, allTurnDirections, allTurnLengths, allTurnables, allTurns, append, appendTo, build, empty, toTurnList, fromString, inverse, toString
 
 -}
 
@@ -128,6 +125,8 @@ inverse =
     map <| List.reverse >> List.map flipTurn
 
 
+{-| Placeholder
+-}
 toString : Algorithm -> String
 toString (Algorithm turnList) =
     String.join " " <| List.map turnToString turnList

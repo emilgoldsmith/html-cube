@@ -10,6 +10,33 @@ import Test exposing (..)
 import Tests.Algorithm
 
 
+toStringTests : Test
+toStringTests =
+    describe "toString"
+        [ test "works for None" <|
+            \_ ->
+                AUF.toString AUF.None
+                    |> Expect.equal ""
+        , test "works for Clockwise" <|
+            \_ ->
+                AUF.toString AUF.Clockwise
+                    |> Expect.equal "U"
+        , test "works for CounterClockwise" <|
+            \_ ->
+                AUF.toString AUF.Clockwise
+                    |> Expect.equal "U'"
+        , test "works for Halfway" <|
+            \_ ->
+                AUF.toString AUF.Clockwise
+                    |> Expect.equal "U2"
+        , fuzz aufFuzzer "is consistent with Algorithm.toString" <|
+            \auf ->
+                AUF.toAlgorithm auf
+                    |> Algorithm.toString
+                    |> Expect.equal (AUF.toString auf)
+        ]
+
+
 fromStringTests : Test
 fromStringTests =
     describe "fromString"

@@ -168,6 +168,10 @@ toString =
 fromString : String -> Result String AUF
 fromString stringValue =
     if
+        -- Algorithm.fromString doesn't accept empty strings
+        -- at the time of writing because it doesn't make sense
+        -- from a user perspective. So we do handle that case here
+        -- as AUFs can indeed be an empty string
         stringValue
             |> String.filter
                 (\x -> x /= ' ' && x /= '\t')
@@ -191,6 +195,9 @@ fromString stringValue =
 algorithmToAuf : Algorithm -> Maybe AUF
 algorithmToAuf algorithm =
     case Algorithm.toTurnList algorithm of
+        [] ->
+            Just None
+
         [ Algorithm.Turn Algorithm.U length direction ] ->
             case ( length, direction ) of
                 ( Algorithm.OneQuarter, Algorithm.Clockwise ) ->

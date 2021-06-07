@@ -90,7 +90,7 @@ toStringTests =
                     |> Algorithm.toString
                     |> Algorithm.fromString
                     |> Expect.equal (Ok algorithm)
-        , test "Passes specific case that tries covering all types of turns, lengths and directions" <|
+        , test "Passes specific case that tries covering all types of turnables, lengths and directions" <|
             \_ ->
                 Algorithm.build
                     [ Algorithm.Turn

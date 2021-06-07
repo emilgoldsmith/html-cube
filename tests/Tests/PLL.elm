@@ -1,4 +1,4 @@
-module Tests.PLL exposing (suite)
+module Tests.PLL exposing (referenceAlgTests)
 
 import Algorithm
 import Cube
@@ -11,9 +11,9 @@ import Test exposing (..)
 import TestHelpers.Cube exposing (plainCubie, solvedCubeRendering)
 
 
-suite : Test
-suite =
-    describe "PLL"
+referenceAlgTests : Test
+referenceAlgTests =
+    describe "ReferenceAlgs"
         [ test "H perm" <|
             \_ ->
                 let

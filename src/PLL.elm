@@ -1,8 +1,25 @@
-module PLL exposing (Algorithms, PLL(..), allPlls, getAlg, getLetters, referenceAlgs)
+module PLL exposing
+    ( PLL(..), allPlls
+    , Algorithms, getAlg, referenceAlgs
+    , getLetters
+    )
 
-{-| Documentation to come
+{-| Types and helper functions to work with the PLL algorithm set
 
-@docs Algorithms, PLL, allPlls, getAlg, getLetters, referenceAlgs
+
+# Definition And Constructors
+
+@docs PLL, allPlls
+
+
+# Collections
+
+@docs Algorithms, getAlg, referenceAlgs
+
+
+# Helpers
+
+@docs getLetters
 
 -}
 
@@ -11,7 +28,13 @@ import List.Nonempty
 import Utils.Enumerator
 
 
-{-| Placeholder
+
+-- DEFINITION
+
+
+{-| All the cases are represented here. Use the value constructors to
+specify a given case in your code, and pass this to any of the helper
+functions
 -}
 type PLL
     = -- Edges only
@@ -40,112 +63,17 @@ type PLL
     | Y
 
 
-{-| Placeholder
--}
-type alias Algorithms =
-    { -- Edges only
-      h : Algorithm.Algorithm
-    , ua : Algorithm.Algorithm
-    , ub : Algorithm.Algorithm
-    , z : Algorithm.Algorithm
-
-    -- Corners only
-    , aa : Algorithm.Algorithm
-    , ab : Algorithm.Algorithm
-    , e : Algorithm.Algorithm
-
-    -- Edges And Corners
-    , f : Algorithm.Algorithm
-    , ga : Algorithm.Algorithm
-    , gb : Algorithm.Algorithm
-    , gc : Algorithm.Algorithm
-    , gd : Algorithm.Algorithm
-    , ja : Algorithm.Algorithm
-    , jb : Algorithm.Algorithm
-    , na : Algorithm.Algorithm
-    , nb : Algorithm.Algorithm
-    , ra : Algorithm.Algorithm
-    , rb : Algorithm.Algorithm
-    , t : Algorithm.Algorithm
-    , v : Algorithm.Algorithm
-    , y : Algorithm.Algorithm
-    }
-
-
-{-| Placeholder
--}
-getLetters : PLL -> String
-getLetters pll =
-    case pll of
-        H ->
-            "H"
-
-        Ua ->
-            "Ua"
-
-        Ub ->
-            "Ub"
-
-        Z ->
-            "Z"
-
-        Aa ->
-            "Aa"
-
-        Ab ->
-            "Ab"
-
-        E ->
-            "E"
-
-        F ->
-            "F"
-
-        Ga ->
-            "Ga"
-
-        Gb ->
-            "Gb"
-
-        Gc ->
-            "Gc"
-
-        Gd ->
-            "Gd"
-
-        Ja ->
-            "Ja"
-
-        Jb ->
-            "Jb"
-
-        Na ->
-            "Na"
-
-        Nb ->
-            "Nb"
-
-        Ra ->
-            "Ra"
-
-        Rb ->
-            "Rb"
-
-        T ->
-            "T"
-
-        V ->
-            "V"
-
-        Y ->
-            "Y"
-
-
-{-| A list of all the PLLs
+{-| A non-empty list of all the PLLs. Can for example
+be used for randomly selecting a pll
 
     import List.Nonempty
 
+    -- All the PLLs are there!
     List.Nonempty.length allPlls --> 21
+
+    -- We could for example select a random PLL case
+    -- via this
+    List.Nonempty.sample allPlls
 
 -}
 allPlls : List.Nonempty.Nonempty PLL
@@ -225,10 +153,134 @@ allPlls =
             List.Nonempty.Nonempty x xs
 
 
-{-| Placeholder
+
+-- HELPERS
+
+
+{-| Generates a string of the identifying letters of the case.
+
+This could be used either for serialization purposes, or for
+building a string to display the user in some instances.
+
+    -- Format is always first letter capitalized and
+    -- the second one lower case if applicable
+    getLetters Ua -> "Ua"
+
+    getLetters H -> "H"
+
 -}
-getAlg : PLL -> Algorithm.Algorithm
-getAlg pll =
+getLetters : PLL -> String
+getLetters pll =
+    case pll of
+        H ->
+            "H"
+
+        Ua ->
+            "Ua"
+
+        Ub ->
+            "Ub"
+
+        Z ->
+            "Z"
+
+        Aa ->
+            "Aa"
+
+        Ab ->
+            "Ab"
+
+        E ->
+            "E"
+
+        F ->
+            "F"
+
+        Ga ->
+            "Ga"
+
+        Gb ->
+            "Gb"
+
+        Gc ->
+            "Gc"
+
+        Gd ->
+            "Gd"
+
+        Ja ->
+            "Ja"
+
+        Jb ->
+            "Jb"
+
+        Na ->
+            "Na"
+
+        Nb ->
+            "Nb"
+
+        Ra ->
+            "Ra"
+
+        Rb ->
+            "Rb"
+
+        T ->
+            "T"
+
+        V ->
+            "V"
+
+        Y ->
+            "Y"
+
+
+
+-- COLLECTIONS
+
+
+{-| A collection of algorithms that solves each given case
+-}
+type alias Algorithms =
+    { -- Edges only
+      h : Algorithm.Algorithm
+    , ua : Algorithm.Algorithm
+    , ub : Algorithm.Algorithm
+    , z : Algorithm.Algorithm
+
+    -- Corners only
+    , aa : Algorithm.Algorithm
+    , ab : Algorithm.Algorithm
+    , e : Algorithm.Algorithm
+
+    -- Edges And Corners
+    , f : Algorithm.Algorithm
+    , ga : Algorithm.Algorithm
+    , gb : Algorithm.Algorithm
+    , gc : Algorithm.Algorithm
+    , gd : Algorithm.Algorithm
+    , ja : Algorithm.Algorithm
+    , jb : Algorithm.Algorithm
+    , na : Algorithm.Algorithm
+    , nb : Algorithm.Algorithm
+    , ra : Algorithm.Algorithm
+    , rb : Algorithm.Algorithm
+    , t : Algorithm.Algorithm
+    , v : Algorithm.Algorithm
+    , y : Algorithm.Algorithm
+    }
+
+
+{-| Get the algorithm for the PLL case from an algorithm collection.
+This helps avoid any typos or need to write your own case statements
+in order to get the algorithm for a case passed to a function
+
+    getAlg referenceAlgs Y --> referenceAlgs.y
+
+-}
+getAlg : Algorithms -> PLL -> Algorithm.Algorithm
+getAlg algorithms pll =
     case pll of
         H ->
             referenceAlgs.h
@@ -296,9 +348,14 @@ getAlg pll =
 
 {-| Plls verified to be correct so they can be used to verify user selected plls
 or for displaying a pll case somewhere on the site.
+
 They have been chosen to be the optimally lowest move count in HTM just for a
-small performance boost. The example tests below are just meant for an easier
-to read version of all the algorithms that are verified to be correct
+small performance boost.
+
+The example tests below are just meant for an easier
+to read version of all the algorithms that are verified to be correct.
+They are also tested via elm-verify-examples so the string versions are
+correct equivalents to the code below.
 
     import Algorithm
 

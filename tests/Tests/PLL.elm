@@ -1,5 +1,6 @@
 module Tests.PLL exposing (getAlgorithmTests, referenceAlgTests)
 
+import AUF
 import Algorithm
 import Cube
 import Cube.Advanced
@@ -296,10 +297,18 @@ getAlgorithmTests =
 expectEqualDisregardingAUF : CubeTypes.Rendering -> Algorithm.Algorithm -> Expect.Expectation
 expectEqualDisregardingAUF expectedRendering alg =
     let
+        aufAlgorithms =
+            List.Nonempty.map AUF.toAlgorithm AUF.all
+
         algWithAllAufs =
-            Algorithm.aufs
+            aufAlgorithms
                 |> List.Nonempty.map (Algorithm.append alg)
-                |> List.Nonempty.concatMap (\withPreAuf -> List.Nonempty.map (Algorithm.appendTo withPreAuf) Algorithm.aufs)
+                |> List.Nonempty.concatMap
+                    (\withPreAuf ->
+                        List.Nonempty.map
+                            (Algorithm.appendTo withPreAuf)
+                            aufAlgorithms
+                    )
 
         candidates =
             algWithAllAufs

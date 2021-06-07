@@ -17,12 +17,12 @@ import Algorithm
 
 spec10 : Test.Test
 spec10 =
-    Test.test "#referenceAlgorithms: \n\n    Algorithm.fromString \"R2' D' F U' F U F' D R2 B U' B'\"\n    --> Ok referenceAlgs.gc" <|
+    Test.test "#referenceAlgorithms: \n\n    Algorithm.fromString \"R2' D' F U' F U F' D R2 B U' B'\"\n    --> Ok referenceAlgorithms.gc" <|
         \() ->
             Expect.equal
                 (
                 Algorithm.fromString "R2' D' F U' F U F' D R2 B U' B'"
                 )
                 (
-                Ok referenceAlgs.gc
+                Ok referenceAlgorithms.gc
                 )

@@ -2,6 +2,7 @@
   "root": "../src",
   "tests": [
     "Algorithm",
+    "AUF",
     "Cube",
     "Cube.Advanced",
     "Cube.Advanced.Types",

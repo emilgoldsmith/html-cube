@@ -1,12 +1,14 @@
-module Algorithm exposing (Algorithm, Turn(..), TurnDirection(..), TurnLength(..), Turnable(..), allTurnDirections, allTurnLengths, allTurnables, allTurns, append, appendTo, aufs, build, empty, extractInternals, fromString, inverse)
+module Algorithm exposing
+    ( Algorithm, Turn(..), TurnDirection(..), TurnLength(..), Turnable(..), allTurnDirections, allTurnLengths, allTurnables, allTurns, append, appendTo, build, empty, extractInternals, fromString, inverse
+    , toString
+    )
 
 {-| Documentation to come
 
-@docs Algorithm, Turn, TurnDirection, TurnLength, Turnable, allTurnDirections, allTurnLengths, allTurnables, allTurns, append, appendTo, aufs, build, empty, extractInternals, fromString, inverse
+@docs Algorithm, Turn, TurnDirection, TurnLength, Turnable, allTurnDirections, allTurnLengths, allTurnables, allTurns, append, appendTo, build, empty, extractInternals, fromString, inverse
 
 -}
 
-import List.Nonempty
 import Monads.ListM as ListM
 import Parser.Advanced as Parser exposing ((|.), (|=), Parser)
 import Utils.Enumerator
@@ -106,18 +108,6 @@ append (Algorithm a) (Algorithm b) =
 
 {-| Placeholder
 -}
-aufs : List.Nonempty.Nonempty Algorithm
-aufs =
-    List.Nonempty.Nonempty
-        empty
-        [ build [ Turn U OneQuarter Clockwise ]
-        , build [ Turn U Halfway Clockwise ]
-        , build [ Turn U OneQuarter CounterClockwise ]
-        ]
-
-
-{-| Placeholder
--}
 inverse : Algorithm -> Algorithm
 inverse =
     let
@@ -136,6 +126,86 @@ inverse =
             Turn a b (flipDirection direction)
     in
     map <| List.reverse >> List.map flipTurn
+
+
+toString : Algorithm -> String
+toString (Algorithm turnList) =
+    String.join " " <| List.map turnToString turnList
+
+
+turnToString : Turn -> String
+turnToString (Turn turnable length direction) =
+    -- For double/triple turns clockwise we format it as U2' / U3'
+    -- as these are used in some algorithms for explanations of
+    -- fingertricks, also notice it's not U'2 or U'3. This decision
+    -- was made based on "use in the wild" specifically the
+    -- Youtuber J Perm's use.
+    turnableToString turnable
+        ++ turnLengthToString length
+        ++ turnDirectionToString direction
+
+
+turnableToString : Turnable -> String
+turnableToString x =
+    case x of
+        U ->
+            "U"
+
+        D ->
+            "D"
+
+        L ->
+            "L"
+
+        R ->
+            "R"
+
+        F ->
+            "F"
+
+        B ->
+            "B"
+
+        M ->
+            "M"
+
+        S ->
+            "S"
+
+        E ->
+            "E"
+
+        X ->
+            "x"
+
+        Y ->
+            "y"
+
+        Z ->
+            "z"
+
+
+turnLengthToString : TurnLength -> String
+turnLengthToString length =
+    case length of
+        OneQuarter ->
+            ""
+
+        Halfway ->
+            "2"
+
+        ThreeQuarters ->
+            "3"
+
+
+turnDirectionToString : TurnDirection -> String
+turnDirectionToString dir =
+    case dir of
+        Clockwise ->
+            ""
+
+        CounterClockwise ->
+            "'"
 
 
 {-| Placeholder
@@ -187,45 +257,6 @@ algParser =
             let
                 turnableToTokenParser turnable =
                     let
-                        turnableToString : Turnable -> String
-                        turnableToString layer =
-                            case layer of
-                                U ->
-                                    "U"
-
-                                D ->
-                                    "D"
-
-                                L ->
-                                    "L"
-
-                                R ->
-                                    "R"
-
-                                F ->
-                                    "F"
-
-                                B ->
-                                    "B"
-
-                                M ->
-                                    "M"
-
-                                S ->
-                                    "S"
-
-                                E ->
-                                    "E"
-
-                                X ->
-                                    "x"
-
-                                Y ->
-                                    "y"
-
-                                Z ->
-                                    "z"
-
                         token =
                             Parser.token (Parser.Token (turnableToString turnable) ExpectingTurnable)
                     in

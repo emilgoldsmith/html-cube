@@ -1,4 +1,4 @@
-module Tests.Algorithm exposing (algorithmFuzzer, appendTests, fromStringTests, inverseAlgTests, turnDirectionFuzzer, turnFuzzer, turnableFuzzer)
+module Tests.Algorithm exposing (algorithmFuzzer, appendTests, fromStringTests, inverseAlgTests, toStringTests, turnDirectionFuzzer, turnFuzzer, turnableFuzzer)
 
 {-| This represents an Algorithm, which is an ordered sequence of moves to be applied
 to a cube. Enjoy!
@@ -16,7 +16,7 @@ fromStringTests =
         [ fuzz validAlgorithmString "successfully parses valid algorithm strings" <|
             Algorithm.fromString
                 >> Expect.ok
-        , fuzz2 algorithmFuzzer turnSeparator "a rendered algorithm is correctly retrieved" <|
+        , fuzz2 algorithmFuzzer turnSeparator "a rendered algorithm is correctly retrieved no matter the separator" <|
             \alg separator ->
                 renderAlgorithm alg separator
                     |> Algorithm.fromString
@@ -78,6 +78,77 @@ fromStringTests =
 
         -- , todo "The turnable specified twice should be tested for a good error message"
         -- Seems like the only use for that could be to specify not to double flick in a special case? But should be safe to error on that and assume it's an input error
+        ]
+
+
+toStringTests : Test
+toStringTests =
+    describe "toString"
+        [ fuzz algorithmFuzzer "stringified algorithm decodes back to original value" <|
+            \algorithm ->
+                algorithm
+                    |> Algorithm.toString
+                    |> Algorithm.fromString
+                    |> Expect.equal (Ok algorithm)
+        , test "Passes specific case that tries covering all types of turns, lengths and directions" <|
+            \_ ->
+                Algorithm.build
+                    [ Algorithm.Turn
+                        Algorithm.U
+                        Algorithm.OneQuarter
+                        Algorithm.Clockwise
+                    , Algorithm.Turn
+                        Algorithm.D
+                        Algorithm.Halfway
+                        Algorithm.Clockwise
+                    , Algorithm.Turn
+                        Algorithm.F
+                        Algorithm.Halfway
+                        Algorithm.CounterClockwise
+                    , Algorithm.Turn
+                        Algorithm.B
+                        Algorithm.OneQuarter
+                        Algorithm.CounterClockwise
+                    , Algorithm.Turn
+                        Algorithm.R
+                        Algorithm.ThreeQuarters
+                        Algorithm.Clockwise
+                    , Algorithm.Turn
+                        Algorithm.L
+                        Algorithm.ThreeQuarters
+                        Algorithm.CounterClockwise
+                    , Algorithm.Turn
+                        Algorithm.M
+                        Algorithm.Halfway
+                        Algorithm.Clockwise
+                    , Algorithm.Turn
+                        Algorithm.S
+                        Algorithm.Halfway
+                        Algorithm.Clockwise
+                    , Algorithm.Turn
+                        Algorithm.E
+                        Algorithm.Halfway
+                        Algorithm.Clockwise
+                    , Algorithm.Turn
+                        Algorithm.X
+                        Algorithm.Halfway
+                        Algorithm.Clockwise
+                    , Algorithm.Turn
+                        Algorithm.Y
+                        Algorithm.Halfway
+                        Algorithm.Clockwise
+                    , Algorithm.Turn
+                        Algorithm.Z
+                        Algorithm.Halfway
+                        Algorithm.Clockwise
+                    ]
+                    |> Algorithm.toString
+                    |> Expect.equal "U D2 F2' B' R3 L3' M2 S2 E2 x2 y2 z2"
+        , test "handles empty algorithm" <|
+            \_ ->
+                Algorithm.empty
+                    |> Algorithm.toString
+                    |> Expect.equal ""
         ]
 
 

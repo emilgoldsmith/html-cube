@@ -1,15 +1,18 @@
 module PLL exposing
-    ( PLL(..), allPlls
+    ( PLL(..), all
     , Algorithms, getAlgorithm, referenceAlgorithms
     , getLetters
     )
 
-{-| Types and helper functions to work with the PLL algorithm set
+{-| Types and helper functions to work with the Permutate Last
+Layer (PLL) algorithm set. See
+<https://www.speedsolving.com/wiki/index.php/PLL>
+for further information
 
 
 # Definition And Constructors
 
-@docs PLL, allPlls
+@docs PLL, all
 
 
 # Collections
@@ -69,15 +72,15 @@ be used for randomly selecting a pll
     import List.Nonempty
 
     -- All the PLLs are there!
-    List.Nonempty.length allPlls --> 21
+    List.Nonempty.length all --> 21
 
     -- We could for example select a random PLL case
     -- via this
-    List.Nonempty.sample allPlls
+    List.Nonempty.sample all
 
 -}
-allPlls : List.Nonempty.Nonempty PLL
-allPlls =
+all : List.Nonempty.Nonempty PLL
+all =
     let
         fromH pll =
             case pll of
@@ -146,7 +149,8 @@ allPlls =
     in
     case Utils.Enumerator.from H fromH of
         [] ->
-            -- This should not happen, and the test also verifies that
+            -- This should not happen, and the length test in examples
+            -- also verifies that it won't
             List.Nonempty.fromElement H
 
         x :: xs ->
@@ -276,7 +280,7 @@ type alias Algorithms =
 This helps avoid any typos or need to write your own case statements
 in order to get the algorithm for a case passed to a function
 
-    getAlg referenceAlgs Y --> referenceAlgs.y
+    getAlgorithm referenceAlgorithms Y --> referenceAlgorithms.y
 
 -}
 getAlgorithm : Algorithms -> PLL -> Algorithm.Algorithm
@@ -362,71 +366,71 @@ correct equivalents to the code below.
     -- Edges Only
 
     Algorithm.fromString "R2 U2 R U2 R2 U2 R2 U2 R U2 R2"
-    --> Ok referenceAlgs.h
+    --> Ok referenceAlgorithms.h
 
     Algorithm.fromString "F2 U' (L R') F2 (L' R) U' F2"
-    --> Ok referenceAlgs.ua
+    --> Ok referenceAlgorithms.ua
 
     Algorithm.fromString "F2 U (R' L) F2 (R L') U F2"
-    --> Ok referenceAlgs.ub
+    --> Ok referenceAlgorithms.ub
 
     Algorithm.fromString "R B' R' B F R' F B' R' B R F2"
-    --> Ok referenceAlgs.z
+    --> Ok referenceAlgorithms.z
 
     -- Corners Only
 
     Algorithm.fromString "R' F R' B2 R F' R' B2 R2"
-    --> Ok referenceAlgs.aa
+    --> Ok referenceAlgorithms.aa
 
     Algorithm.fromString "R B' R F2 R' B R F2 R2"
-    --> Ok referenceAlgs.ab
+    --> Ok referenceAlgorithms.ab
 
     Algorithm.fromString "D R' D2 F' D L D' F D2 R D' F' L' F"
-    --> Ok referenceAlgs.e
+    --> Ok referenceAlgorithms.e
 
     -- Corners And Edges
 
     Algorithm.fromString "L F R' F' L' F' D2 B' L' B D2 F' R F2"
-    --> Ok referenceAlgs.f
+    --> Ok referenceAlgorithms.f
 
     Algorithm.fromString "F2' D (R' U R' U' R) D' F2 L' U L"
-    --> Ok referenceAlgs.ga
+    --> Ok referenceAlgorithms.ga
 
     Algorithm.fromString "R' U' R B2 D (L' U L U' L) D' B2"
-    --> Ok referenceAlgs.gb
+    --> Ok referenceAlgorithms.gb
 
     Algorithm.fromString "R2' D' F U' F U F' D R2 B U' B'"
-    --> Ok referenceAlgs.gc
+    --> Ok referenceAlgorithms.gc
 
     Algorithm.fromString "R U R' F2 D' (L U' L' U L') D F2"
-    --> Ok referenceAlgs.gd
+    --> Ok referenceAlgorithms.gd
 
     Algorithm.fromString "B2 R' U' R B2 L' D L' D' L2"
-    --> Ok referenceAlgs.ja
+    --> Ok referenceAlgorithms.ja
 
     Algorithm.fromString "B2 (L U L') B2 (R D' R D) R2"
-    --> Ok referenceAlgs.jb
+    --> Ok referenceAlgorithms.jb
 
     Algorithm.fromString "L U' R U2 L' U R' L U' R U2 L' U R'"
-    --> Ok referenceAlgs.na
+    --> Ok referenceAlgorithms.na
 
     Algorithm.fromString "R' U L' U2 R U' L R' U L' U2 R U' L"
-    --> Ok referenceAlgs.nb
+    --> Ok referenceAlgorithms.nb
 
     Algorithm.fromString "F2 R' F' U' F' U F R F' U2 F U2 F'"
-    --> Ok referenceAlgs.ra
+    --> Ok referenceAlgorithms.ra
 
     Algorithm.fromString "R2 F R U R U' R' F' R U2 R' U2 R"
-    --> Ok referenceAlgs.rb
+    --> Ok referenceAlgorithms.rb
 
     Algorithm.fromString "F2 D R2 U' R2 F2 D' L2 U L2"
-    --> Ok referenceAlgs.t
+    --> Ok referenceAlgorithms.t
 
     Algorithm.fromString "R' U R' U' B' R' B2 U' B' U B' R B R"
-    --> Ok referenceAlgs.v
+    --> Ok referenceAlgorithms.v
 
     Algorithm.fromString "F2 D R2 U R2 D' R' U' R F2 R' U R"
-    --> Ok referenceAlgs.y
+    --> Ok referenceAlgorithms.y
 
 -}
 referenceAlgorithms : Algorithms

@@ -14,6 +14,7 @@ jobs:
       elm_format_version: 0.8.4
       elm_verify_examples_version: 5.0.0
       elm_analyse_version: 0.16.5
+      elm_doc_preview_version: 5.0.5
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -46,7 +47,8 @@ jobs:
             elm-test@$elm_test_version \
             elm-format@$elm_format_version \
             elm-verify-examples@$elm_verify_examples_version \
-            elm-analyse@$elm_analyse_version
+            elm-analyse@$elm_analyse_version \
+            elm-doc-preview@$elm_doc_preview_version
 
           echo 'PATH="$PATH:$(npm bin --global)"' >> ~/.bashrc
 
@@ -64,6 +66,9 @@ jobs:
 
       - name: Run unit tests
         run: ./scripts/checks/elm-test.sh
+
+      - name: Check that docs compile
+        run: ./scripts/checks/elm-docs-compile.sh
 
       - name: Handle Yarn caching
         uses: actions/cache@v2

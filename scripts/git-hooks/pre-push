@@ -54,6 +54,8 @@ run_check \
 
 run_check "Checking Compilation" "Compilation Failed" ./compiles-everything.sh
 
+run_check "Checking Docs Compile" "Doc Compilation Failed" ./elm-docs-compile.sh
+
 run_check "Checking Linting" "Elm analyse found linting issues" ./elm-analyse.sh
 
 run_check "Checking Code Formatting" "Formatting issues found" ./elm-format.sh

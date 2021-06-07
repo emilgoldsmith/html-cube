@@ -4,9 +4,10 @@ module AUF exposing
     )
 
 {-| Types and helpers to deal with Adjust U Face (AUF), which
-are the moves needed to adjust the U face to the right angle
-for executing your algorithms for several algorithm sets such
-as OLL and PLL. See
+are the moves needed either to adjust the U face to the right
+angle for executing your algorithms for several algorithm sets
+such as OLL and PLL, or the last move needed to solve the cube
+for example after PLL. See
 <https://www.speedsolving.com/wiki/index.php/AUF>
 for more information
 
@@ -32,7 +33,7 @@ import Utils.Enumerator
 
 
 {-| The 4 different AUFs. U, U', U2, and nothing.
-Use these value constructors together with [all](@all)
+Use these value constructors together with [@all](#all)
 when you need to construct in different ways.
 -}
 type AUF
@@ -43,14 +44,27 @@ type AUF
 
 
 {-| A nonempty list containing all the possible aufs.
-Could for example be used to generate a random auf
+Could for example be used to generate a random auf or
+generate all the possible versions of an algorithm
 
     import List.Nonempty
 
     -- They are all there!
     List.Nonempty.length all --> 4
 
+    -- Generate a random one
     List.Nonempty.sample all
+
+    import PLL
+
+    -- Get all versions of a Y perm
+    all
+        |> List.Nonempty.map (Tuple.pair PLL.Y)
+        |> List.Nonempty.map (\(pll, postAuf) ->
+            List.Nonempty.map
+                (\preAuf -> (preAuf, pll, postAuf))
+                all
+        )
 
 -}
 all : List.Nonempty.Nonempty AUF
@@ -141,9 +155,14 @@ toString =
 {-| Attempts to parse an algorithmic representation of an AUF
 
     fromString "U'" --> Ok CounterClockwise
+
     fromString "" --> Ok None
+
     fromString "U B"
-    --> Err "An AUF must be no move or a single turn of the U layer"
+    --> Err
+    -->     ("An AUF must be no move or "
+    -->         ++ "a single turn of the U layer"
+    -->     )
 
 -}
 fromString : String -> Result String AUF

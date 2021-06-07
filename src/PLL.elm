@@ -1,11 +1,11 @@
 module PLL exposing
     ( PLL(..), all
-    , Algorithms, getAlgorithm, referenceAlgorithms
     , getLetters
+    , Algorithms, getAlgorithm, referenceAlgorithms
     )
 
 {-| Types and helper functions to work with the Permutate Last
-Layer (PLL) algorithm set. See
+Layer (PLL) algorithm set, the last step of the CFOP method. See
 <https://www.speedsolving.com/wiki/index.php/PLL>
 for further information
 
@@ -15,14 +15,14 @@ for further information
 @docs PLL, all
 
 
-# Collections
-
-@docs Algorithms, getAlgorithm, referenceAlgorithms
-
-
 # Helpers
 
 @docs getLetters
+
+
+# Collections
+
+@docs Algorithms, getAlgorithm, referenceAlgorithms
 
 -}
 
@@ -35,9 +35,9 @@ import Utils.Enumerator
 -- DEFINITION
 
 
-{-| All the cases are represented here. Use the value constructors to
-specify a given case in your code, and pass this to any of the helper
-functions
+{-| All the cases are represented here. Use the value constructors here
+or [@all](#all) to specify a given case in your code, and pass these to
+any of the helper functions
 -}
 type PLL
     = -- Edges only
@@ -168,9 +168,9 @@ building a string to display the user in some instances.
 
     -- Format is always first letter capitalized and
     -- the second one lower case if applicable
-    getLetters Ua -> "Ua"
+    getLetters Ua --> "Ua"
 
-    getLetters H -> "H"
+    getLetters H --> "H"
 
 -}
 getLetters : PLL -> String
@@ -244,7 +244,7 @@ getLetters pll =
 -- COLLECTIONS
 
 
-{-| A collection of algorithms that solves each given case
+{-| A collection of algorithms that solves the respective case
 -}
 type alias Algorithms =
     { -- Edges only
@@ -280,7 +280,8 @@ type alias Algorithms =
 This helps avoid any typos or need to write your own case statements
 in order to get the algorithm for a case passed to a function
 
-    getAlgorithm referenceAlgorithms Y --> referenceAlgorithms.y
+    getAlgorithm referenceAlgorithms Y
+    --> referenceAlgorithms.y
 
 -}
 getAlgorithm : Algorithms -> PLL -> Algorithm.Algorithm

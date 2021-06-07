@@ -1,6 +1,6 @@
 module Algorithm exposing
-    ( Algorithm, Turn(..), TurnDirection(..), TurnLength(..), Turnable(..), allTurnDirections, allTurnLengths, allTurnables, allTurns, append, appendTo, build, empty, extractInternals, fromString, inverse
-    , toString
+    ( Algorithm, Turn(..), TurnDirection(..), TurnLength(..), Turnable(..), allTurnDirections, allTurnLengths, allTurnables, allTurns, append, appendTo, build, empty, fromString, inverse
+    , toString, toTurnList
     )
 
 {-| Documentation to come
@@ -71,8 +71,8 @@ type TurnDirection
 
 {-| Placeholder
 -}
-extractInternals : Algorithm -> List Turn
-extractInternals alg =
+toTurnList : Algorithm -> List Turn
+toTurnList alg =
     case alg of
         Algorithm turnList ->
             turnList

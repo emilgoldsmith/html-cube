@@ -292,7 +292,7 @@ composeTurnDefinition ( corners1, edges1, centers1 ) ( corners2, edges2, centers
 -}
 applyAlgorithm : Algorithm.Algorithm -> Cube -> Cube
 applyAlgorithm alg cube =
-    List.foldl applyTurn cube (Algorithm.extractInternals alg)
+    List.foldl applyTurn cube (Algorithm.toTurnList alg)
 
 
 applyTurn : Algorithm.Turn -> Cube -> Cube

@@ -1,4 +1,4 @@
-module Tests.Algorithm exposing (algorithmFuzzer, appendTests, fromStringTests, inverseAlgTests, toStringTests, turnDirectionFuzzer, turnFuzzer, turnableFuzzer)
+module Tests.Algorithm exposing (algorithmFuzzer, appendTests, fromStringTests, inverseAlgTests, toStringTests, turnDirectionFuzzer, turnFuzzer, turnLengthFuzzer, turnableFuzzer)
 
 {-| This represents an Algorithm, which is an ordered sequence of moves to be applied
 to a cube. Enjoy!
@@ -256,7 +256,7 @@ renderAlgorithm : Algorithm.Algorithm -> String -> String
 renderAlgorithm alg separator =
     let
         renderedTurnList =
-            Algorithm.extractInternals >> List.map renderTurn <| alg
+            Algorithm.toTurnList >> List.map renderTurn <| alg
     in
     String.join separator renderedTurnList
 
@@ -274,7 +274,7 @@ turnSeparator =
 
 turnFuzzer : Fuzz.Fuzzer Algorithm.Turn
 turnFuzzer =
-    Fuzz.map3 Algorithm.Turn turnableFuzzer turnLength turnDirectionFuzzer
+    Fuzz.map3 Algorithm.Turn turnableFuzzer turnLengthFuzzer turnDirectionFuzzer
 
 
 renderTurn : Algorithm.Turn -> String
@@ -330,8 +330,8 @@ renderTurnable x =
             'z'
 
 
-turnLength : Fuzz.Fuzzer Algorithm.TurnLength
-turnLength =
+turnLengthFuzzer : Fuzz.Fuzzer Algorithm.TurnLength
+turnLengthFuzzer =
     Fuzz.oneOf <| List.map Fuzz.constant Algorithm.allTurnLengths
 
 

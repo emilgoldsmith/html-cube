@@ -1,4 +1,7 @@
-module AUF exposing (AUF(..), toAlgorithm, all, toString, fromString)
+module AUF exposing
+    ( AUF(..), all
+    , toAlgorithm, toString, fromString
+    )
 
 {-| Types and helpers to deal with Adjust U Face (AUF), which
 are the moves needed to adjust the U face to the right angle
@@ -7,7 +10,15 @@ as OLL and PLL. See
 <https://www.speedsolving.com/wiki/index.php/AUF>
 for more information
 
-@docs AUF, toAlgorithm, all, toString, fromString
+
+# Definition and Constructors
+
+@docs AUF, all
+
+
+# Helpers
+
+@docs toAlgorithm, toString, fromString
 
 -}
 
@@ -16,46 +27,19 @@ import List.Nonempty
 import Utils.Enumerator
 
 
-{-| Placeholder
+
+-- DEFINITION AND CONSTRUCTORS
+
+
+{-| The 4 different AUFs. U, U', U2, and nothing.
+Use these value constructors together with [all](@all)
+when you need to construct in different ways.
 -}
 type AUF
     = None
     | Clockwise
     | Halfway
     | CounterClockwise
-
-
-{-| Placeholder
--}
-toAlgorithm : AUF -> Algorithm
-toAlgorithm auf =
-    case auf of
-        None ->
-            Algorithm.empty
-
-        Clockwise ->
-            Algorithm.build
-                [ Algorithm.Turn
-                    Algorithm.U
-                    Algorithm.OneQuarter
-                    Algorithm.Clockwise
-                ]
-
-        Halfway ->
-            Algorithm.build
-                [ Algorithm.Turn
-                    Algorithm.U
-                    Algorithm.Halfway
-                    Algorithm.Clockwise
-                ]
-
-        CounterClockwise ->
-            Algorithm.build
-                [ Algorithm.Turn
-                    Algorithm.U
-                    Algorithm.OneQuarter
-                    Algorithm.CounterClockwise
-                ]
 
 
 {-| A nonempty list containing all the possible aufs.
@@ -96,14 +80,71 @@ all =
             List.Nonempty.Nonempty x xs
 
 
-{-| Placeholder
+
+-- HELPERS
+
+
+{-| Get the algorithm that corresponds to the AUF
+
+    import Algorithm
+
+    toAlgorithm Halfway
+    -->  Algorithm.build
+    -->    [ Algorithm.Turn
+    -->        Algorithm.U
+    -->        Algorithm.Halfway
+    -->        Algorithm.Clockwise
+    -->    ]
+
+-}
+toAlgorithm : AUF -> Algorithm
+toAlgorithm auf =
+    case auf of
+        None ->
+            Algorithm.empty
+
+        Clockwise ->
+            Algorithm.build
+                [ Algorithm.Turn
+                    Algorithm.U
+                    Algorithm.OneQuarter
+                    Algorithm.Clockwise
+                ]
+
+        Halfway ->
+            Algorithm.build
+                [ Algorithm.Turn
+                    Algorithm.U
+                    Algorithm.Halfway
+                    Algorithm.Clockwise
+                ]
+
+        CounterClockwise ->
+            Algorithm.build
+                [ Algorithm.Turn
+                    Algorithm.U
+                    Algorithm.OneQuarter
+                    Algorithm.CounterClockwise
+                ]
+
+
+{-| Get an algorithm string representation of the AUF
+
+    toString Halfway --> "U2"
+
 -}
 toString : AUF -> String
 toString =
     toAlgorithm >> Algorithm.toString
 
 
-{-| Placeholder
+{-| Attempts to parse an algorithmic representation of an AUF
+
+    fromString "U'" --> Ok CounterClockwise
+    fromString "" --> Ok None
+    fromString "U B"
+    --> Err "An AUF must be no move or a single turn of the U layer"
+
 -}
 fromString : String -> Result String AUF
 fromString stringValue =

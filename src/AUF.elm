@@ -1,4 +1,4 @@
-module AUF exposing (AUF, all, fromString, toAlgorithm, toString)
+module AUF exposing (AUF(..), all, fromString, toAlgorithm, toString)
 
 {-| Types and helpers to deal with Adjust U Face (AUF), which
 are the moves needed to adjust the U face to the right angle
@@ -9,7 +9,6 @@ for more information
 -}
 
 import Algorithm exposing (Algorithm)
-import Json.Decode
 import List.Nonempty
 import Utils.Enumerator
 
@@ -97,7 +96,12 @@ toString =
 
 fromString : String -> Result String AUF
 fromString stringValue =
-    if String.isEmpty stringValue then
+    if
+        stringValue
+            |> String.filter
+                (\x -> x /= ' ' && x /= '\t')
+            |> String.isEmpty
+    then
         Ok None
 
     else
@@ -115,18 +119,26 @@ fromString stringValue =
 
 algorithmToAuf : Algorithm -> Maybe AUF
 algorithmToAuf algorithm =
-    let
-        aufAlgorithms =
-            List.Nonempty.map (\auf -> ( auf, toAlgorithm auf )) all
-                -- We need it as a list to filter
-                |> List.Nonempty.toList
+    case Algorithm.toTurnList algorithm of
+        [ Algorithm.Turn Algorithm.U length direction ] ->
+            case ( length, direction ) of
+                ( Algorithm.OneQuarter, Algorithm.Clockwise ) ->
+                    Just Clockwise
 
-        matches =
-            List.filter (Tuple.second >> (==) algorithm) aufAlgorithms
-    in
-    case matches of
-        [ ( matchingAuf, _ ) ] ->
-            Just matchingAuf
+                ( Algorithm.Halfway, Algorithm.Clockwise ) ->
+                    Just Halfway
+
+                ( Algorithm.ThreeQuarters, Algorithm.Clockwise ) ->
+                    Just CounterClockwise
+
+                ( Algorithm.OneQuarter, Algorithm.CounterClockwise ) ->
+                    Just CounterClockwise
+
+                ( Algorithm.Halfway, Algorithm.CounterClockwise ) ->
+                    Just Halfway
+
+                ( Algorithm.ThreeQuarters, Algorithm.CounterClockwise ) ->
+                    Just Clockwise
 
         _ ->
             Nothing

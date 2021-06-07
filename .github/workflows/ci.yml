@@ -120,7 +120,7 @@ jobs:
       # so we wait a bit and try again
       - name: Wait before retrying
         if: ${{ steps.publish.outcome == 'failure' }}
-        run: sleep 10
+        run: sleep 30
 
       - uses: dillonkearns/elm-publish-action@v1
         if: ${{ steps.publish.outcome == 'failure' }}

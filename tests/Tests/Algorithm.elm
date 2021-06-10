@@ -52,12 +52,43 @@ fromStringTests =
                             Algorithm.build <|
                                 List.repeat 4 (Algorithm.Turn Algorithm.U Algorithm.OneQuarter Algorithm.Clockwise)
                         )
-        , fuzz obviouslyInvalidAlgorithmString "errors on invalid algorithms" <|
+        , fuzz obviouslyInvalidAlgorithmString "errors on invalid algorithms, but never crashes" <|
             Algorithm.fromString
-                >> Expect.err
+                >> Expect.all
+                    [ Expect.err
+                    , \result ->
+                        case result of
+                            -- We just pass here as we are expecting an error above
+                            Ok _ ->
+                                Expect.pass
+
+                            Err error ->
+                                case error of
+                                    Algorithm.ParserCrashed message ->
+                                        Expect.fail ("ParserCrashed should never occur. The message was `" ++ message ++ "`")
+
+                                    _ ->
+                                        Expect.pass
+                    ]
         , test "errors on empty string as in the real world an algorithm always has turns" <|
             \_ ->
-                Algorithm.fromString "" |> Expect.err
+                Algorithm.fromString ""
+                    |> Expect.equal (Err Algorithm.EmptyAlgorithm)
+        , test "pure whitespace errors as EmptyAlgorithm" <|
+            \_ ->
+                Algorithm.fromString "  \t\t \t  \t \t  "
+                    |> Expect.equal (Err Algorithm.EmptyAlgorithm)
+        , test "An unexpected alphabetic character errors as invalid turnable" <|
+            \_ ->
+                Algorithm.fromString "UB'AFM2'"
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.InvalidTurnable
+                                { inputString = "UB'AFM2'"
+                                , errorIndex = 3
+                                , invalidTurnable = "A"
+                                }
+                        )
         , test "errors on 2 apostrophes in a row" <|
             \_ ->
                 Algorithm.fromString "U''"

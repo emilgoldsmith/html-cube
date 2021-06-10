@@ -214,12 +214,13 @@ type FromStringError
     | InvalidTurnable
         { inputString : String
         , errorIndex : Int
-        , invalidCharacter : Char
+        , invalidTurnable : String
         }
     | InvalidTurnLength String
     | InvalidCharacter Char
     | RepeatedTurnable String
     | UnexpectedSpace
+    | ParserCrashed String
 
 
 {-| Placeholder
@@ -227,7 +228,33 @@ type FromStringError
 fromString : String -> Result FromStringError Algorithm
 fromString string =
     Parser.run algParser string
-        |> Result.mapError (always EmptyAlgorithm)
+        |> Result.mapError (parserErrorToFromStringError string)
+
+
+parserErrorToFromStringError :
+    String
+    -> List (Parser.DeadEnd Never ParsingProblem)
+    -> FromStringError
+parserErrorToFromStringError string deadends =
+    case deadends of
+        [] ->
+            ParserCrashed "Unexpected empty deadends at an error"
+
+        { problem, col, row } :: _ ->
+            if row /= 1 then
+                ParserCrashed "An error occurred not at row 1, when we only allow a single row"
+
+            else
+                case problem of
+                    EmptyAlgorithmParsingProblem ->
+                        EmptyAlgorithm
+
+                    _ ->
+                        InvalidTurnable
+                            { inputString = string
+                            , errorIndex = col - 1
+                            , invalidTurnable = String.slice (col - 1) col string
+                            }
 
 
 
@@ -250,16 +277,18 @@ algParser : Parser Never ParsingProblem Algorithm
 algParser =
     let
         looper currentAlgorithm =
-            Parser.oneOf
-                [ Parser.succeed (\turn -> Parser.Loop (turn :: currentAlgorithm))
-                    |. Parser.chompWhile (\c -> c == ' ' || c == '\t' || c == '(')
-                    |= turnParser
-                    |. Parser.chompWhile (\c -> c == ' ' || c == '\t' || c == ')')
-                , Parser.succeed ()
-                    |. Parser.end UnexpectedCharacter
-                    |> Parser.map
-                        (\_ -> Parser.Done (List.reverse currentAlgorithm))
-                ]
+            Parser.succeed identity
+                |. Parser.chompWhile isWhiteSpace
+                |= Parser.oneOf
+                    [ Parser.succeed (\turn -> Parser.Loop (turn :: currentAlgorithm))
+                        |. Parser.chompWhile (\c -> c == '(')
+                        |= turnParser
+                        |. Parser.chompWhile (\c -> isWhiteSpace c || c == ')')
+                    , Parser.succeed ()
+                        |. Parser.end UnexpectedCharacter
+                        |> Parser.map
+                            (\_ -> Parser.Done (List.reverse currentAlgorithm))
+                    ]
 
         turnParser =
             Parser.succeed Turn
@@ -300,6 +329,11 @@ algParser =
                     Parser.succeed (Algorithm turnList)
     in
     Parser.succeed Algorithm |= Parser.loop [] looper |> Parser.andThen verifyNotEmpty
+
+
+isWhiteSpace : Char -> Bool
+isWhiteSpace c =
+    c == ' ' || c == '\t'
 
 
 

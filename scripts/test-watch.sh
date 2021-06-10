@@ -2,4 +2,10 @@
 
 set -euo pipefail
 
-$(dirname "${BASH_SOURCE[0]}")/checks/elm-test.sh --watch
+ROOT_DIRECTORY=$(dirname "${BASH_SOURCE[0]}")/..
+
+cd $ROOT_DIRECTORY
+
+elm-verify-examples
+
+./scripts/checks/elm-test.sh --watch

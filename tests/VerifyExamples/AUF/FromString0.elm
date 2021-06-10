@@ -16,15 +16,12 @@ import AUF exposing (..)
 
 spec0 : Test.Test
 spec0 =
-    Test.test "#fromString: \n\n    fromString \"U B\"\n    --> Err\n    -->     (\"An AUF must be no move or \"\n    -->         ++ \"a single turn of the U layer\"\n    -->     )" <|
+    Test.test "#fromString: \n\n    fromString \"U B\"\n    --> Err InvalidAUFAlgorithm" <|
         \() ->
             Expect.equal
                 (
                 fromString "U B"
                 )
                 (
-                Err
-                    ("An AUF must be no move or "
-                        ++ "a single turn of the U layer"
-                    )
+                Err InvalidAUFAlgorithm
                 )

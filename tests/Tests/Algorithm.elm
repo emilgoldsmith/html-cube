@@ -29,6 +29,10 @@ fromStringTests =
                             Algorithm.build <|
                                 List.repeat 7 (Algorithm.Turn Algorithm.U Algorithm.OneQuarter Algorithm.Clockwise)
                         )
+        , test "handles leading and trailing whitespace" <|
+            \_ ->
+                Algorithm.fromString "\t U \t"
+                    |> Expect.ok
         , test "Confidence check that a simple example maps to what we would expect" <|
             \_ ->
                 Algorithm.fromString "RU2B'"
@@ -56,10 +60,12 @@ fromStringTests =
                 Algorithm.fromString "" |> Expect.err
         , test "errors on 2 apostrophes in a row" <|
             \_ ->
-                Algorithm.fromString "U''" |> Expect.err
+                Algorithm.fromString "U''"
+                    |> Expect.err
         , test "errors on space between the turnable and the apostrophe" <|
             \_ ->
-                Algorithm.fromString "U '" |> Expect.err
+                Algorithm.fromString "U '"
+                    |> Expect.err
         , test "errors on apostrophe before turn length" <|
             \_ ->
                 Algorithm.fromString "U'2" |> Expect.err
@@ -69,6 +75,9 @@ fromStringTests =
         , test "errors on turn length 4" <|
             \_ ->
                 Algorithm.fromString "U4" |> Expect.err
+        , test "errors on turn length 1" <|
+            \_ ->
+                Algorithm.fromString "U1" |> Expect.err
         , test "errors on turn length specified twice" <|
             \_ ->
                 Algorithm.fromString "U22'" |> Expect.err

@@ -1,6 +1,6 @@
 module AUF exposing
     ( AUF(..), all
-    , toAlgorithm, toString, fromString
+    , toAlgorithm, toString, FromStringProblem(..), fromString
     )
 
 {-| Types and helpers to deal with Adjust U Face (AUF), which
@@ -19,7 +19,7 @@ for more information
 
 # Helpers
 
-@docs toAlgorithm, toString, fromString
+@docs toAlgorithm, toString, FromStringProblem, fromString
 
 -}
 
@@ -152,6 +152,21 @@ toString =
     toAlgorithm >> Algorithm.toString
 
 
+{-| Explains an issue that occurred while parsing an AUF
+
+**InvalidAUFAlgorithm**: The algorithm was parsed correctly but was not
+either an empty move or a turn of the U face
+
+**AlgorithmParsingProblem**: The string was not a valid algorithm string
+and the contained [Algorithm.FromStringError](Algorithm#FromStringError)
+has the problem with the string
+
+-}
+type FromStringProblem
+    = InvalidAUFAlgorithm
+    | AlgorithmParsingProblem Algorithm.FromStringError
+
+
 {-| Attempts to parse an algorithmic representation of an AUF
 
     fromString "U'" --> Ok CounterClockwise
@@ -159,13 +174,10 @@ toString =
     fromString "" --> Ok None
 
     fromString "U B"
-    --> Err
-    -->     ("An AUF must be no move or "
-    -->         ++ "a single turn of the U layer"
-    -->     )
+    --> Err InvalidAUFAlgorithm
 
 -}
-fromString : String -> Result String AUF
+fromString : String -> Result FromStringProblem AUF
 fromString stringValue =
     if
         -- Algorithm.fromString doesn't accept empty strings
@@ -182,14 +194,10 @@ fromString stringValue =
     else
         stringValue
             |> Algorithm.fromString
+            |> Result.mapError AlgorithmParsingProblem
             |> Result.map algorithmToAuf
-            |> Result.map (Maybe.map Ok)
             |> Result.andThen
-                (Maybe.withDefault
-                    (Err
-                        "An AUF must be no move or a single turn of the U layer"
-                    )
-                )
+                (Result.fromMaybe InvalidAUFAlgorithm)
 
 
 algorithmToAuf : Algorithm -> Maybe AUF

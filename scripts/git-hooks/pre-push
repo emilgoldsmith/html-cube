@@ -67,3 +67,5 @@ run_check \
     ../helpers/check-for-uncommitted-changes.sh
 
 run_check "Checking Unit Tests" "Unit Tests Failed" ./elm-test.sh
+
+run_check "Testing Examples" "Test Of Examples Failed" ./test-examples.sh

@@ -4,10 +4,6 @@ set -euo pipefail
 
 ROOT_DIRECTORY=$(dirname "${BASH_SOURCE[0]}")/../..
 
-cd $ROOT_DIRECTORY
+cd $ROOT_DIRECTORY/examples
 
-elm-format src --validate
-
-cd examples
-
-elm-format src --validate
+elm make src/*.elm

@@ -96,7 +96,7 @@ view model =
             []
          ]
             ++ (getError model
-                    |> Maybe.map (\error -> [ div [ style "color" "red" ] [viewError error] ])
+                    |> Maybe.map (\error -> [ div [ style "color" "red" ] [ viewError error ] ])
                     |> Maybe.withDefault []
                )
         )
@@ -108,11 +108,21 @@ viewError error =
         Algorithm.EmptyAlgorithm ->
             text "You must input an algorithm"
 
-        Algorithm.InvalidTurnable { inputString, errorIndex, invalidCharacter } ->
+        Algorithm.InvalidTurnable { inputString, errorIndex, invalidTurnable } ->
             div []
-                [ text "Invalid turnable "
-                , em [] [ strong [] [ text <| String.fromChar invalidCharacter ] ]
-                , text ". I expected something like U or M or x"
+                [ div []
+                    [ text "Invalid turnable "
+                    , em [] [ strong [] [ text invalidTurnable ] ]
+                    , text ". I expected something like U or M or x"
+                    ]
+                , div [style "white-space" "pre"]
+                    [ text (String.slice 0 errorIndex inputString)
+                    , span [ style "position" "relative", style "display" "inline-block" ]
+                        [ text (String.slice errorIndex (errorIndex + 1) inputString)
+                        , div [ style "position" "absolute", style "top" "18px", style "right" "1px" ] [ text "^" ]
+                        ]
+                    , text (String.slice (errorIndex + 1) (String.length inputString) inputString)
+                    ]
                 ]
 
         _ ->

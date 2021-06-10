@@ -1,4 +1,4 @@
-module Cube exposing (Cube(..), applyAlgorithm, solved, viewUBLWithLetters, viewUFRNoLetters, viewUFRWithLetters)
+module Cube exposing (Cube(..), applyAlgorithm, solved, viewUBLWithLetters, viewUFRWithLetters)
 
 {-| Documentation to come
 

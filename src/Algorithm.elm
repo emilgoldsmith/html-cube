@@ -1,8 +1,8 @@
-module Algorithm exposing (Algorithm, Turn(..), TurnDirection(..), TurnLength(..), Turnable(..), allTurnDirections, allTurnLengths, allTurnables, allTurns, append, appendTo, build, empty, toTurnList, fromString, inverse, toString)
+module Algorithm exposing (Algorithm, Turn(..), TurnDirection(..), TurnLength(..), Turnable(..), allTurnDirections, allTurnLengths, allTurnables, allTurns, append, appendTo, build, empty, toTurnList, fromString, inverse, toString, FromStringError(..))
 
 {-| Documentation to come
 
-@docs Algorithm, Turn, TurnDirection, TurnLength, Turnable, allTurnDirections, allTurnLengths, allTurnables, allTurns, append, appendTo, build, empty, toTurnList, fromString, inverse, toString
+@docs Algorithm, Turn, TurnDirection, TurnLength, Turnable, allTurnDirections, allTurnLengths, allTurnables, allTurns, append, appendTo, build, empty, toTurnList, fromString, inverse, toString, FromStringError
 
 -}
 
@@ -209,10 +209,25 @@ turnDirectionToString dir =
 
 {-| Placeholder
 -}
-fromString : String -> Result String Algorithm
+type FromStringError
+    = EmptyAlgorithm
+    | InvalidTurnable
+        { inputString : String
+        , errorIndex : Int
+        , invalidCharacter : Char
+        }
+    | InvalidTurnLength String
+    | InvalidCharacter Char
+    | RepeatedTurnable String
+    | UnexpectedSpace
+
+
+{-| Placeholder
+-}
+fromString : String -> Result FromStringError Algorithm
 fromString string =
     Parser.run algParser string
-        |> Result.mapError (renderError string)
+        |> Result.mapError (always EmptyAlgorithm)
 
 
 
@@ -221,23 +236,23 @@ fromString string =
 
 {-| Placeholder
 -}
-type Problem
+type ParsingProblem
     = ExpectingTurnable
     | ExpectingNumQuarterTurns
     | ExpectingTurnDirection
     | UnexpectedCharacter
-    | EmptyAlgorithm
+    | EmptyAlgorithmParsingProblem
 
 
 {-| Placeholder
 -}
-algParser : Parser Never Problem Algorithm
+algParser : Parser Never ParsingProblem Algorithm
 algParser =
     let
         looper currentAlgorithm =
             Parser.oneOf
                 [ Parser.succeed (\turn -> Parser.Loop (turn :: currentAlgorithm))
-                    |. Parser.chompWhile (\c -> c == '(')
+                    |. Parser.chompWhile (\c -> c == ' ' || c == '\t' || c == '(')
                     |= turnParser
                     |. Parser.chompWhile (\c -> c == ' ' || c == '\t' || c == ')')
                 , Parser.succeed ()
@@ -279,44 +294,12 @@ algParser =
         verifyNotEmpty (Algorithm turnList) =
             case List.length turnList of
                 0 ->
-                    Parser.problem EmptyAlgorithm
+                    Parser.problem EmptyAlgorithmParsingProblem
 
                 _ ->
                     Parser.succeed (Algorithm turnList)
     in
     Parser.succeed Algorithm |= Parser.loop [] looper |> Parser.andThen verifyNotEmpty
-
-
-{-| Placeholder
--}
-renderError : String -> List (Parser.DeadEnd Never Problem) -> String
-renderError string deadEnds =
-    let
-        renderDeadEnd d =
-            String.fromInt d.row ++ ":" ++ String.fromInt d.col ++ " : " ++ renderProblem d.problem
-    in
-    string ++ "    " ++ (String.join ". " <| List.map renderDeadEnd deadEnds)
-
-
-{-| Placeholder
--}
-renderProblem : Problem -> String
-renderProblem problem =
-    case problem of
-        ExpectingTurnable ->
-            "Expecting face or slice"
-
-        ExpectingNumQuarterTurns ->
-            "Expecting num quarter turns"
-
-        ExpectingTurnDirection ->
-            "Expecting turn direction"
-
-        UnexpectedCharacter ->
-            "Unexpected character"
-
-        EmptyAlgorithm ->
-            "An empty algorithm makes no sense as user input"
 
 
 

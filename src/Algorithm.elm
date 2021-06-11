@@ -261,8 +261,6 @@ parserErrorToFromStringError string deadends =
 -- PARSER
 
 
-{-| Placeholder
--}
 type ParsingProblem
     = ExpectingTurnable
     | ExpectingNumQuarterTurns
@@ -271,23 +269,21 @@ type ParsingProblem
     | EmptyAlgorithmParsingProblem
 
 
-{-| Placeholder
--}
 algParser : Parser Never ParsingProblem Algorithm
 algParser =
     let
-        looper currentAlgorithm =
+        looper currentTurnList =
             Parser.succeed identity
                 |. Parser.chompWhile isWhiteSpace
                 |= Parser.oneOf
-                    [ Parser.succeed (\turn -> Parser.Loop (turn :: currentAlgorithm))
+                    [ Parser.succeed (\turn -> Parser.Loop (turn :: currentTurnList))
                         |. Parser.chompWhile (\c -> c == '(')
                         |= turnParser
                         |. Parser.chompWhile (\c -> isWhiteSpace c || c == ')')
                     , Parser.succeed ()
                         |. Parser.end UnexpectedCharacter
                         |> Parser.map
-                            (\_ -> Parser.Done (List.reverse currentAlgorithm))
+                            (\_ -> Parser.Done (List.reverse currentTurnList))
                     ]
 
         turnParser =

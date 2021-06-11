@@ -124,7 +124,14 @@ fromStringTests =
                         )
         , test "errors on apostrophe before turn length" <|
             \_ ->
-                Algorithm.fromString "U'2" |> Expect.err
+                Algorithm.fromString "U'2"
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.InvalidTurnApostropheWrongSideOfLength
+                                { inputString = "U'2"
+                                , errorIndex = 1
+                                }
+                        )
         , test "errors on turn length 4" <|
             \_ ->
                 Algorithm.fromString "U4" |> Expect.err

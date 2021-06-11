@@ -115,9 +115,6 @@ viewError error =
 
                 invalidOne =
                     String.slice errorIndex (errorIndex + 1) inputString
-
-                after =
-                    String.slice (errorIndex + 1) (String.length inputString) inputString
             in
             div []
                 [ div []
@@ -166,6 +163,26 @@ viewError error =
                                 inputString
                             )
                         ]
+                    , text "^"
+                    ]
+                ]
+
+        Algorithm.InvalidTurnApostropheWrongSideOfLength { inputString, errorIndex } ->
+            div []
+                [ div []
+                    [ text
+                        ("Invalid turn encountered, but it would be valid if you swapped"
+                            ++ " the apostrophe and the number, so maybe try that"
+                        )
+                    ]
+                , div [ style "white-space" "pre" ]
+                    [ text inputString
+                    ]
+                , div [ style "white-space" "pre" ]
+                    -- One of several ways to ensure the arrow is indented
+                    -- exactly the right amount, as different characters have
+                    -- different widths, so just using spaces etc. isn't enough
+                    [ span [ style "visibility" "hidden" ] [ text (String.slice 0 errorIndex inputString)]
                     , text "^"
                     ]
                 ]

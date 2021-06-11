@@ -132,20 +132,29 @@ fromStringTests =
                                 , errorIndex = 1
                                 }
                         )
+        , test "errors on turn length specified twice" <|
+            \_ ->
+                Algorithm.fromString "U22'"
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.InvalidTurnable
+                                { inputString = "U22'"
+                                , errorIndex = 2
+                                , invalidTurnable = "2"
+                                }
+                        )
         , test "errors on turn length 4" <|
             \_ ->
                 Algorithm.fromString "U4" |> Expect.err
         , test "errors on turn length 1" <|
             \_ ->
                 Algorithm.fromString "U1" |> Expect.err
-        , test "errors on turn length specified twice" <|
-            \_ ->
-                Algorithm.fromString "U22'" |> Expect.err
         , test "errors on newline between turns" <|
             \_ ->
                 Algorithm.fromString "U2'\nU" |> Expect.err
+        , todo "test parentheses"
+        , todo "The turnable specified twice should be tested for a good error message"
 
-        -- , todo "The turnable specified twice should be tested for a good error message"
         -- Seems like the only use for that could be to specify not to double flick in a special case? But should be safe to error on that and assume it's an input error
         ]
 

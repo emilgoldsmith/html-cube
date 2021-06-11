@@ -224,6 +224,10 @@ type FromStringError
         , wrongWhitespaceStart : Int
         , wrongWhitespaceEnd : Int
         }
+    | InvalidTurnApostropheWrongSideOfLength
+        { inputString : String
+        , errorIndex : Int
+        }
     | ParserCrashed String
 
 
@@ -285,7 +289,7 @@ problemToFromStringError { inputString, problem, index } =
         ExpectingTurnable ->
             let
                 workedWithoutWhitespace =
-                    wouldHaveWorkedWithoutWhitespace
+                    turnWouldHaveWorkedWithoutWhitespace
                         inputString
                         index
             in
@@ -294,6 +298,16 @@ problemToFromStringError { inputString, problem, index } =
                     { inputString = inputString
                     , wrongWhitespaceStart = workedWithoutWhitespace.whitespaceStart
                     , wrongWhitespaceEnd = workedWithoutWhitespace.whitespaceEnd
+                    }
+
+            else if
+                turnWouldHaveWorkedWithLengthAndDirectionSwapped
+                    inputString
+                    index
+            then
+                InvalidTurnApostropheWrongSideOfLength
+                    { inputString = inputString
+                    , errorIndex = index - 1
                     }
 
             else
@@ -325,7 +339,7 @@ type StateHelper
         }
 
 
-wouldHaveWorkedWithoutWhitespace :
+turnWouldHaveWorkedWithoutWhitespace :
     String
     -> Int
     ->
@@ -333,7 +347,7 @@ wouldHaveWorkedWithoutWhitespace :
         , whitespaceStart : Int
         , whitespaceEnd : Int
         }
-wouldHaveWorkedWithoutWhitespace string index =
+turnWouldHaveWorkedWithoutWhitespace string index =
     let
         -- Note that we fold from the right
         failedTurnableToLeftNeighbour =
@@ -392,6 +406,29 @@ wouldHaveWorkedWithoutWhitespace string index =
             , whitespaceStart = -1
             , whitespaceEnd = -1
             }
+
+
+turnWouldHaveWorkedWithLengthAndDirectionSwapped :
+    String
+    -> Int
+    -> Bool
+turnWouldHaveWorkedWithLengthAndDirectionSwapped string errorIndex =
+    let
+        turnable =
+            String.slice (errorIndex - 2) (errorIndex - 1) string
+
+        apostrophe =
+            String.slice (errorIndex - 1) errorIndex string
+
+        length =
+            String.slice errorIndex (errorIndex + 1) string
+    in
+    case Parser.run algorithmParser (turnable ++ length ++ apostrophe) of
+        Ok _ ->
+            True
+
+        Err _ ->
+            False
 
 
 

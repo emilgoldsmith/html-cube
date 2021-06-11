@@ -89,14 +89,28 @@ fromStringTests =
                                 , invalidTurnable = "A"
                                 }
                         )
-        , test "errors on 2 apostrophes in a row" <|
+        , test "errors on 2 apostrophes in a row expecting a turnable" <|
             \_ ->
                 Algorithm.fromString "U''"
-                    |> Expect.err
-        , test "errors on space between the turnable and the apostrophe" <|
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.InvalidTurnable
+                                { inputString = "U''"
+                                , errorIndex = 2
+                                , invalidTurnable = "'"
+                                }
+                        )
+        , test "errors on whitespace between the turnable and the apostrophe" <|
             \_ ->
-                Algorithm.fromString "U '"
-                    |> Expect.err
+                Algorithm.fromString "U  \t '"
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.WouldWorkWithoutSpace
+                                { inputString = "U  \t '"
+                                , wrongWhitespaceStart = 1
+                                , wrongWhitespaceEnd = 5
+                                }
+                        )
         , test "errors on apostrophe before turn length" <|
             \_ ->
                 Algorithm.fromString "U'2" |> Expect.err

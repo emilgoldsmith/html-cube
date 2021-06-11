@@ -109,19 +109,31 @@ viewError error =
             text "You must input an algorithm"
 
         Algorithm.InvalidTurnable { inputString, errorIndex, invalidTurnable } ->
+            let
+                before =
+                    String.slice 0 errorIndex inputString
+
+                invalidOne =
+                    String.slice errorIndex (errorIndex + 1) inputString
+
+                after =
+                    String.slice (errorIndex + 1) (String.length inputString) inputString
+            in
             div []
                 [ div []
                     [ text "Invalid turnable "
                     , em [] [ strong [] [ text invalidTurnable ] ]
                     , text ". I expected something like U or M or x"
                     ]
-                , div [style "white-space" "pre"]
-                    [ text (String.slice 0 errorIndex inputString)
-                    , span [ style "position" "relative", style "display" "inline-block" ]
-                        [ text (String.slice errorIndex (errorIndex + 1) inputString)
-                        , div [ style "position" "absolute", style "top" "18px", style "right" "1px" ] [ text "^" ]
-                        ]
-                    , text (String.slice (errorIndex + 1) (String.length inputString) inputString)
+                , div [ style "white-space" "pre" ]
+                    [ text inputString
+                    ]
+                , div [ style "white-space" "pre" ]
+                    -- One of several ways to ensure the arrow is indented
+                    -- exactly the right amount, as different characters have
+                    -- different widths, so just using spaces etc. isn't enough
+                    [ span [ style "visibility" "hidden" ] [ text before ]
+                    , text "^"
                     ]
                 ]
 

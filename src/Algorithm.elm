@@ -219,7 +219,11 @@ type FromStringError
     | InvalidTurnLength String
     | InvalidCharacter Char
     | RepeatedTurnable String
-    | UnexpectedSpace
+    | WouldWorkWithoutSpace
+        { inputString : String
+        , wrongWhitespaceStart : Int
+        , wrongWhitespaceEnd : Int
+        }
     | ParserCrashed String
 
 
@@ -245,16 +249,149 @@ parserErrorToFromStringError string deadends =
                 ParserCrashed "An error occurred not at row 1, when we only allow a single row"
 
             else
-                case problem of
-                    EmptyAlgorithmParsingProblem ->
-                        EmptyAlgorithm
+                problemToFromStringError
+                    { problem = problem
+                    , index = col - 1
+                    , inputString = string
+                    }
 
-                    _ ->
-                        InvalidTurnable
-                            { inputString = string
-                            , errorIndex = col - 1
-                            , invalidTurnable = String.slice (col - 1) col string
-                            }
+
+
+-- parseDeadEnds :
+--     List (Parser.DeadEnd Never ParsingProblem)
+--     -> Result FromStringError {
+--         problem : ParsingProblem
+--     , col : Int}
+-- parseDeadEnds deadends =
+--     List.foldl
+--         (\deadend result->
+--             Result.andThen ({problem, col, row} ->
+--                 if col != deadend.col then
+--                     Err (ParserCrashed "Columns weren't the same")
+--                 else if row != ))
+
+
+problemToFromStringError :
+    { inputString : String
+    , problem : ParsingProblem
+    , index : Int
+    }
+    -> FromStringError
+problemToFromStringError { inputString, problem, index } =
+    case problem of
+        EmptyAlgorithmParsingProblem ->
+            EmptyAlgorithm
+
+        ExpectingTurnable ->
+            let
+                workedWithoutWhitespace =
+                    wouldHaveWorkedWithoutWhitespace
+                        inputString
+                        index
+            in
+            if workedWithoutWhitespace.worked then
+                WouldWorkWithoutSpace
+                    { inputString = inputString
+                    , wrongWhitespaceStart = workedWithoutWhitespace.whitespaceStart
+                    , wrongWhitespaceEnd = workedWithoutWhitespace.whitespaceEnd
+                    }
+
+            else
+                InvalidTurnable
+                    { inputString = inputString
+                    , errorIndex = index
+                    , invalidTurnable = String.slice index (index + 1) inputString
+                    }
+
+        UnexpectedEnd ->
+            ParserCrashed "We Expected UnexpectedEnd Problems To Have Been Filtered Out"
+
+        WillNeverOccur ->
+            ParserCrashed "A problem we never expected to happen happened anyway"
+
+
+type StateHelper
+    = BeforeInvalidTurnable Int
+    | WhitespaceBeforeNeighbour
+        { invalidTurnable : String
+        , whitespaceEnd : Int
+        , curIndex : Int
+        }
+    | Done
+        { invalidTurnable : String
+        , neighbour : String
+        , whitespaceStart : Int
+        , whitespaceEnd : Int
+        }
+
+
+wouldHaveWorkedWithoutWhitespace :
+    String
+    -> Int
+    ->
+        { worked : Bool
+        , whitespaceStart : Int
+        , whitespaceEnd : Int
+        }
+wouldHaveWorkedWithoutWhitespace string index =
+    let
+        -- Note that we fold from the right
+        failedTurnableToLeftNeighbour =
+            String.foldr
+                (\char state ->
+                    case state of
+                        BeforeInvalidTurnable curIndex ->
+                            if curIndex > index then
+                                BeforeInvalidTurnable (curIndex - 1)
+
+                            else
+                                WhitespaceBeforeNeighbour
+                                    { invalidTurnable = String.fromChar char
+                                    , whitespaceEnd = curIndex
+                                    , curIndex = curIndex - 1
+                                    }
+
+                        WhitespaceBeforeNeighbour localState ->
+                            if isWhitespace char then
+                                WhitespaceBeforeNeighbour
+                                    { localState
+                                        | curIndex = localState.curIndex - 1
+                                    }
+
+                            else
+                                Done
+                                    { invalidTurnable = localState.invalidTurnable
+                                    , neighbour = String.fromChar char
+                                    , whitespaceStart = localState.curIndex + 1
+                                    , whitespaceEnd = localState.whitespaceEnd
+                                    }
+
+                        Done localState ->
+                            Done localState
+                )
+                (BeforeInvalidTurnable (String.length string - 1))
+                string
+    in
+    case failedTurnableToLeftNeighbour of
+        Done { invalidTurnable, neighbour, whitespaceStart, whitespaceEnd } ->
+            case Parser.run algorithmParser (neighbour ++ invalidTurnable) of
+                Ok _ ->
+                    { worked = True
+                    , whitespaceStart = whitespaceStart
+                    , whitespaceEnd = whitespaceEnd
+                    }
+
+                Err _ ->
+                    { worked = False
+                    , whitespaceStart = -1
+                    , whitespaceEnd = -1
+                    }
+
+        _ ->
+            { worked = False
+            , whitespaceStart = -1
+            , whitespaceEnd = -1
+            }
 
 
 
@@ -267,38 +404,38 @@ type alias OurParser result =
 
 type ParsingProblem
     = ExpectingTurnable
-    | ExpectingNumQuarterTurns
-    | ExpectingTurnDirection
-    | UnexpectedCharacter
     | EmptyAlgorithmParsingProblem
+    | UnexpectedEnd
+    | WillNeverOccur
 
 
 {-| Serves as a bit of a configuration for what whitespace
 we accept. This implementation of space and tab for example
 only allows algorithms written on a single line
 -}
-isWhiteSpace : Char -> Bool
-isWhiteSpace c =
+isWhitespace : Char -> Bool
+isWhitespace c =
     c == ' ' || c == '\t'
 
 
 algorithmParser : OurParser Algorithm
 algorithmParser =
     Parser.succeed Algorithm
-        |. Parser.chompWhile isWhiteSpace
-        |= Parser.loop [] handleTurnListLooping
+        -- Ignore leading whitespace
+        |. Parser.chompWhile isWhitespace
+        |= Parser.loop [] buildTurnListLoop
         |> Parser.andThen verifyNotEmptyParser
 
 
-handleTurnListLooping : List Turn -> OurParser (Parser.Step (List Turn) (List Turn))
-handleTurnListLooping currentTurnList =
+buildTurnListLoop : List Turn -> OurParser (Parser.Step (List Turn) (List Turn))
+buildTurnListLoop currentTurnList =
     Parser.oneOf
         [ Parser.succeed (\turn -> Parser.Loop (turn :: currentTurnList))
             |. Parser.chompWhile (\c -> c == '(')
             |= turnParser
-            |. Parser.chompWhile (\c -> isWhiteSpace c || c == ')')
+            |. Parser.chompWhile (\c -> isWhitespace c || c == ')')
         , Parser.succeed ()
-            |. Parser.end UnexpectedCharacter
+            |. Parser.end UnexpectedEnd
             |> Parser.map
                 (\_ -> Parser.Done (List.reverse currentTurnList))
         ]
@@ -328,17 +465,21 @@ turnableParser =
 turnLengthParser : OurParser TurnLength
 turnLengthParser =
     Parser.oneOf
-        [ Parser.map (\_ -> Halfway) <| Parser.token (Parser.Token "2" ExpectingNumQuarterTurns)
-        , Parser.map (\_ -> ThreeQuarters) <| Parser.token (Parser.Token "3" ExpectingNumQuarterTurns)
-        , Parser.map (\_ -> OneQuarter) <| Parser.token (Parser.Token "" ExpectingNumQuarterTurns)
+        -- WillNeverOccur here because we include the empty string which will always
+        -- succeed
+        [ Parser.map (\_ -> Halfway) <| Parser.token (Parser.Token "2" WillNeverOccur)
+        , Parser.map (\_ -> ThreeQuarters) <| Parser.token (Parser.Token "3" WillNeverOccur)
+        , Parser.map (\_ -> OneQuarter) <| Parser.token (Parser.Token "" WillNeverOccur)
         ]
 
 
 directionParser : OurParser TurnDirection
 directionParser =
     Parser.oneOf
-        [ Parser.map (\_ -> CounterClockwise) <| Parser.token (Parser.Token "'" ExpectingTurnDirection)
-        , Parser.map (\_ -> Clockwise) <| Parser.token (Parser.Token "" ExpectingTurnDirection)
+        -- WillNeverOccur here because we include the empty string which will always
+        -- succeed
+        [ Parser.map (\_ -> CounterClockwise) <| Parser.token (Parser.Token "'" WillNeverOccur)
+        , Parser.map (\_ -> Clockwise) <| Parser.token (Parser.Token "" WillNeverOccur)
         ]
 
 

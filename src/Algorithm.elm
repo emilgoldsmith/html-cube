@@ -273,18 +273,16 @@ algParser : Parser Never ParsingProblem Algorithm
 algParser =
     let
         looper currentTurnList =
-            Parser.succeed identity
-                |. Parser.chompWhile isWhiteSpace
-                |= Parser.oneOf
-                    [ Parser.succeed (\turn -> Parser.Loop (turn :: currentTurnList))
-                        |. Parser.chompWhile (\c -> c == '(')
-                        |= turnParser
-                        |. Parser.chompWhile (\c -> isWhiteSpace c || c == ')')
-                    , Parser.succeed ()
-                        |. Parser.end UnexpectedCharacter
-                        |> Parser.map
-                            (\_ -> Parser.Done (List.reverse currentTurnList))
-                    ]
+            Parser.oneOf
+                [ Parser.succeed (\turn -> Parser.Loop (turn :: currentTurnList))
+                    |. Parser.chompWhile (\c -> c == '(')
+                    |= turnParser
+                    |. Parser.chompWhile (\c -> isWhiteSpace c || c == ')')
+                , Parser.succeed ()
+                    |. Parser.end UnexpectedCharacter
+                    |> Parser.map
+                        (\_ -> Parser.Done (List.reverse currentTurnList))
+                ]
 
         turnParser =
             Parser.succeed Turn
@@ -324,7 +322,10 @@ algParser =
                 _ ->
                     Parser.succeed (Algorithm turnList)
     in
-    Parser.succeed Algorithm |= Parser.loop [] looper |> Parser.andThen verifyNotEmpty
+    Parser.succeed Algorithm
+        |. Parser.chompWhile isWhiteSpace
+        |= Parser.loop [] looper
+        |> Parser.andThen verifyNotEmpty
 
 
 isWhiteSpace : Char -> Bool

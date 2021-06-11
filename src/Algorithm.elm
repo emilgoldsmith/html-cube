@@ -219,7 +219,7 @@ type FromStringError
     | InvalidTurnLength String
     | InvalidCharacter Char
     | RepeatedTurnable String
-    | WouldWorkWithoutSpace
+    | InvalidTurnWouldWorkWithoutSpace
         { inputString : String
         , wrongWhitespaceStart : Int
         , wrongWhitespaceEnd : Int
@@ -290,7 +290,7 @@ problemToFromStringError { inputString, problem, index } =
                         index
             in
             if workedWithoutWhitespace.worked then
-                WouldWorkWithoutSpace
+                InvalidTurnWouldWorkWithoutSpace
                     { inputString = inputString
                     , wrongWhitespaceStart = workedWithoutWhitespace.whitespaceStart
                     , wrongWhitespaceEnd = workedWithoutWhitespace.whitespaceEnd

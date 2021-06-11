@@ -137,5 +137,38 @@ viewError error =
                     ]
                 ]
 
+        Algorithm.InvalidTurnWouldWorkWithoutSpace { inputString, wrongWhitespaceStart, wrongWhitespaceEnd } ->
+            div []
+                [ div []
+                    [ text
+                        ("Encountered a turn that couldn't be parsed. The turn would"
+                            ++ " be valid if the below space was removed. Was that what you intended?"
+                        )
+                    ]
+                , div [ style "white-space" "pre" ]
+                    [ text inputString
+                    ]
+                , div [ style "white-space" "pre" ]
+                    -- One of several ways to ensure the arrow is indented
+                    -- exactly the right amount, as different characters have
+                    -- different widths, so just using spaces etc. isn't enough
+                    [ span
+                        [ style "visibility" "hidden" ]
+                        [ text (String.slice 0 (wrongWhitespaceStart - 1) inputString)
+                        ]
+                    , text "^"
+                    , span
+                        [ style "visibility" "hidden" ]
+                        [ text
+                            (String.slice
+                                wrongWhitespaceStart
+                                (wrongWhitespaceEnd - 2)
+                                inputString
+                            )
+                        ]
+                    , text "^"
+                    ]
+                ]
+
         _ ->
             text "error"

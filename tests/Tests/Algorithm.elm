@@ -105,18 +105,26 @@ fromStringTests =
                 Algorithm.fromString "U  \t '"
                     |> Expect.equal
                         (Err <|
-                            Algorithm.WouldWorkWithoutSpace
+                            Algorithm.InvalidTurnWouldWorkWithoutSpace
                                 { inputString = "U  \t '"
                                 , wrongWhitespaceStart = 1
                                 , wrongWhitespaceEnd = 5
                                 }
                         )
+        , test "errors on space between turnable and turn length" <|
+            \_ ->
+                Algorithm.fromString "U \t \t 2"
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.InvalidTurnWouldWorkWithoutSpace
+                                { inputString = "U \t \t 2"
+                                , wrongWhitespaceStart = 1
+                                , wrongWhitespaceEnd = 6
+                                }
+                        )
         , test "errors on apostrophe before turn length" <|
             \_ ->
                 Algorithm.fromString "U'2" |> Expect.err
-        , test "errors on space between turnable and turn length" <|
-            \_ ->
-                Algorithm.fromString "U 2" |> Expect.err
         , test "errors on turn length 4" <|
             \_ ->
                 Algorithm.fromString "U4" |> Expect.err

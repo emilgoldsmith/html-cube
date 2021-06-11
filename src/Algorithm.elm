@@ -227,7 +227,7 @@ type FromStringError
 -}
 fromString : String -> Result FromStringError Algorithm
 fromString string =
-    Parser.run algParser string
+    Parser.run algorithmParser string
         |> Result.mapError (parserErrorToFromStringError string)
 
 
@@ -261,6 +261,10 @@ parserErrorToFromStringError string deadends =
 -- PARSER
 
 
+type alias OurParser result =
+    Parser Never ParsingProblem result
+
+
 type ParsingProblem
     = ExpectingTurnable
     | ExpectingNumQuarterTurns
@@ -269,68 +273,83 @@ type ParsingProblem
     | EmptyAlgorithmParsingProblem
 
 
-algParser : Parser Never ParsingProblem Algorithm
-algParser =
-    let
-        looper currentTurnList =
-            Parser.oneOf
-                [ Parser.succeed (\turn -> Parser.Loop (turn :: currentTurnList))
-                    |. Parser.chompWhile (\c -> c == '(')
-                    |= turnParser
-                    |. Parser.chompWhile (\c -> isWhiteSpace c || c == ')')
-                , Parser.succeed ()
-                    |. Parser.end UnexpectedCharacter
-                    |> Parser.map
-                        (\_ -> Parser.Done (List.reverse currentTurnList))
-                ]
-
-        turnParser =
-            Parser.succeed Turn
-                |= turnableParser
-                |= turnLengthParser
-                |= directionParser
-
-        turnableParser =
-            let
-                turnableToTokenParser turnable =
-                    let
-                        token =
-                            Parser.token (Parser.Token (turnableToString turnable) ExpectingTurnable)
-                    in
-                    Parser.map (\_ -> turnable) token
-            in
-            Parser.oneOf (List.map turnableToTokenParser allTurnables)
-
-        turnLengthParser =
-            Parser.oneOf
-                [ Parser.map (\_ -> Halfway) <| Parser.token (Parser.Token "2" ExpectingNumQuarterTurns)
-                , Parser.map (\_ -> ThreeQuarters) <| Parser.token (Parser.Token "3" ExpectingNumQuarterTurns)
-                , Parser.map (\_ -> OneQuarter) <| Parser.token (Parser.Token "" ExpectingNumQuarterTurns)
-                ]
-
-        directionParser =
-            Parser.oneOf
-                [ Parser.map (\_ -> CounterClockwise) <| Parser.token (Parser.Token "'" ExpectingTurnDirection)
-                , Parser.map (\_ -> Clockwise) <| Parser.token (Parser.Token "" ExpectingTurnDirection)
-                ]
-
-        verifyNotEmpty (Algorithm turnList) =
-            case List.length turnList of
-                0 ->
-                    Parser.problem EmptyAlgorithmParsingProblem
-
-                _ ->
-                    Parser.succeed (Algorithm turnList)
-    in
-    Parser.succeed Algorithm
-        |. Parser.chompWhile isWhiteSpace
-        |= Parser.loop [] looper
-        |> Parser.andThen verifyNotEmpty
-
-
+{-| Serves as a bit of a configuration for what whitespace
+we accept. This implementation of space and tab for example
+only allows algorithms written on a single line
+-}
 isWhiteSpace : Char -> Bool
 isWhiteSpace c =
     c == ' ' || c == '\t'
+
+
+algorithmParser : OurParser Algorithm
+algorithmParser =
+    Parser.succeed Algorithm
+        |. Parser.chompWhile isWhiteSpace
+        |= Parser.loop [] handleTurnListLooping
+        |> Parser.andThen verifyNotEmptyParser
+
+
+handleTurnListLooping : List Turn -> OurParser (Parser.Step (List Turn) (List Turn))
+handleTurnListLooping currentTurnList =
+    Parser.oneOf
+        [ Parser.succeed (\turn -> Parser.Loop (turn :: currentTurnList))
+            |. Parser.chompWhile (\c -> c == '(')
+            |= turnParser
+            |. Parser.chompWhile (\c -> isWhiteSpace c || c == ')')
+        , Parser.succeed ()
+            |. Parser.end UnexpectedCharacter
+            |> Parser.map
+                (\_ -> Parser.Done (List.reverse currentTurnList))
+        ]
+
+
+turnParser : OurParser Turn
+turnParser =
+    Parser.succeed Turn
+        |= turnableParser
+        |= turnLengthParser
+        |= directionParser
+
+
+turnableParser : OurParser Turnable
+turnableParser =
+    let
+        turnableToTokenParser turnable =
+            let
+                token =
+                    Parser.token (Parser.Token (turnableToString turnable) ExpectingTurnable)
+            in
+            Parser.map (\_ -> turnable) token
+    in
+    Parser.oneOf (List.map turnableToTokenParser allTurnables)
+
+
+turnLengthParser : OurParser TurnLength
+turnLengthParser =
+    Parser.oneOf
+        [ Parser.map (\_ -> Halfway) <| Parser.token (Parser.Token "2" ExpectingNumQuarterTurns)
+        , Parser.map (\_ -> ThreeQuarters) <| Parser.token (Parser.Token "3" ExpectingNumQuarterTurns)
+        , Parser.map (\_ -> OneQuarter) <| Parser.token (Parser.Token "" ExpectingNumQuarterTurns)
+        ]
+
+
+directionParser : OurParser TurnDirection
+directionParser =
+    Parser.oneOf
+        [ Parser.map (\_ -> CounterClockwise) <| Parser.token (Parser.Token "'" ExpectingTurnDirection)
+        , Parser.map (\_ -> Clockwise) <| Parser.token (Parser.Token "" ExpectingTurnDirection)
+        ]
+
+
+verifyNotEmptyParser : Algorithm -> OurParser Algorithm
+verifyNotEmptyParser (Algorithm turnList) =
+    case List.length turnList of
+        0 ->
+            Parser.problem EmptyAlgorithmParsingProblem
+
+        _ ->
+            Parser.succeed (Algorithm turnList)
 
 
 

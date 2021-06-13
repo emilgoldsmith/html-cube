@@ -210,9 +210,9 @@ fromStringTests =
                                 , invalidLength = "1"
                                 }
                         )
-        , todo "test parentheses"
-        , todo "The turnable specified twice should be tested for a good error message"
 
+        -- , todo "test parentheses"
+        -- , todo "The turnable specified twice should be tested for a good error message"
         -- Seems like the only use for that could be to specify not to double flick in a special case? But should be safe to error on that and assume it's an input error
         ]
 

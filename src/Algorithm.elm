@@ -376,7 +376,7 @@ parseDeadEnds deadends inputString =
 getRelevantProblem : Parser.DeadEnd Never ParsingProblem -> Maybe ParsingProblem
 getRelevantProblem { problem } =
     case problem of
-        ExpectingTurnable ->
+        ExpectingTurnable _ ->
             Just problem
 
         EmptyAlgorithmParsingProblem ->
@@ -401,7 +401,7 @@ problemToFromStringError { inputString, problem, index, unexpectedString } =
         EmptyAlgorithmParsingProblem ->
             EmptyAlgorithm
 
-        ExpectingTurnable ->
+        ExpectingTurnable { previousTurnString } ->
             let
                 workedWithoutWhitespace =
                     turnWouldHaveWorkedWithoutWhitespace
@@ -417,8 +417,9 @@ problemToFromStringError { inputString, problem, index, unexpectedString } =
 
             else if
                 turnWouldHaveWorkedWithLengthAndDirectionSwapped
-                    inputString
-                    index
+                    { unexpectedString = unexpectedString
+                    , previousTurnString = previousTurnString
+                    }
             then
                 InvalidTurnApostropheWrongSideOfLength
                     { inputString = inputString
@@ -432,9 +433,8 @@ problemToFromStringError { inputString, problem, index, unexpectedString } =
 
             else if
                 wasInvalidTurnLength
-                    { inputString = inputString
-                    , index = index
-                    , unexpectedString = unexpectedString
+                    { unexpectedString = unexpectedString
+                    , previousTurnString = previousTurnString
                     }
             then
                 InvalidTurnLength
@@ -542,53 +542,47 @@ turnWouldHaveWorkedWithoutWhitespace string index =
 
 
 turnWouldHaveWorkedWithLengthAndDirectionSwapped :
-    String
-    -> Int
-    -> Bool
-turnWouldHaveWorkedWithLengthAndDirectionSwapped string errorIndex =
-    let
-        turnable =
-            String.slice (errorIndex - 2) (errorIndex - 1) string
-
-        apostrophe =
-            String.slice (errorIndex - 1) errorIndex string
-
-        length =
-            String.slice errorIndex (errorIndex + 1) string
-    in
-    case Parser.run algorithmParser (turnable ++ length ++ apostrophe) of
-        Ok _ ->
-            True
-
-        Err _ ->
-            False
-
-
-wasInvalidTurnLength :
-    { inputString : String
-    , index : Int
+    { previousTurnString : String
     , unexpectedString : String
     }
     -> Bool
-wasInvalidTurnLength { inputString, index, unexpectedString } =
-    if index == 0 || String.toInt unexpectedString == Nothing then
-        False
+turnWouldHaveWorkedWithLengthAndDirectionSwapped { previousTurnString, unexpectedString } =
+    String.right 1 previousTurnString
+        == "'"
+        && resultToBool
+            (Parser.run algorithmParser
+                (String.dropRight 1 previousTurnString
+                    ++ unexpectedString
+                    ++ String.right 1 previousTurnString
+                )
+            )
 
-    else
-        let
-            possibleTurnWithValidTurn =
-                String.slice (index - 1) index inputString ++ "2"
-        in
-        case Parser.run algorithmParser possibleTurnWithValidTurn of
-            -- If the turn was valid if the number was changed to 2
-            -- it was indeed an invalid turn length
-            Ok _ ->
-                True
 
-            -- If this didn't work either invalid turn length wasn't the only
-            -- problem at least
-            Err _ ->
-                False
+wasInvalidTurnLength :
+    { previousTurnString : String
+    , unexpectedString : String
+    }
+    -> Bool
+wasInvalidTurnLength { previousTurnString, unexpectedString } =
+    -- Check that a turn length was attempted to be specified by
+    -- checking if the unexpected string was an integer
+    maybeToBool
+        (String.toInt unexpectedString)
+        -- If this was so we attempt to see if a valid turn length
+        -- added to what was parsed as the previous turn succeeds.
+        -- If it succeeds we know it was an invalid turn length
+        && resultToBool
+            (Parser.run algorithmParser (previousTurnString ++ "2"))
+
+
+maybeToBool : Maybe a -> Bool
+maybeToBool =
+    Maybe.map (always True) >> Maybe.withDefault False
+
+
+resultToBool : Result a b -> Bool
+resultToBool =
+    Result.map (always True) >> Result.withDefault False
 
 
 
@@ -600,7 +594,7 @@ type alias OurParser result =
 
 
 type ParsingProblem
-    = ExpectingTurnable
+    = ExpectingTurnable { previousTurnString : String }
     | EmptyAlgorithmParsingProblem
     | UnexpectedEnd
     | WillNeverOccur
@@ -620,39 +614,60 @@ algorithmParser =
     Parser.succeed Algorithm
         -- Ignore leading whitespace
         |. Parser.chompWhile (\c -> isWhitespace c || c == '(')
-        |= Parser.loop [] buildTurnListLoop
+        |= Parser.loop
+            { turnList = []
+            , lastTurnString = ""
+            }
+            buildTurnListLoop
         |> Parser.andThen verifyNotEmptyParser
 
 
-buildTurnListLoop : List Turn -> OurParser (Parser.Step (List Turn) (List Turn))
-buildTurnListLoop currentTurnList =
+buildTurnListLoop :
+    { turnList : List Turn
+    , lastTurnString : String
+    }
+    ->
+        OurParser
+            (Parser.Step
+                { turnList : List Turn
+                , lastTurnString : String
+                }
+                (List Turn)
+            )
+buildTurnListLoop { turnList, lastTurnString } =
     Parser.oneOf
-        [ Parser.succeed (\turn -> Parser.Loop (turn :: currentTurnList))
+        [ Parser.succeed
+            (\( turnString, turn ) ->
+                Parser.Loop
+                    { turnList = turn :: turnList
+                    , lastTurnString = turnString
+                    }
+            )
             |. Parser.chompWhile (\c -> c == '(')
-            |= turnParser
+            |= Parser.mapChompedString Tuple.pair (turnParser lastTurnString)
             |. Parser.chompWhile (\c -> isWhitespace c || c == ')')
         , Parser.succeed ()
             |. Parser.end UnexpectedEnd
             |> Parser.map
-                (\_ -> Parser.Done (List.reverse currentTurnList))
+                (\_ -> Parser.Done (List.reverse turnList))
         ]
 
 
-turnParser : OurParser Turn
-turnParser =
+turnParser : String -> OurParser Turn
+turnParser previousTurn =
     Parser.succeed Turn
-        |= turnableParser
+        |= turnableParser previousTurn
         |= turnLengthParser
         |= directionParser
 
 
-turnableParser : OurParser Turnable
-turnableParser =
+turnableParser : String -> OurParser Turnable
+turnableParser previousTurn =
     let
         turnableToTokenParser turnable =
             let
                 token =
-                    Parser.token (Parser.Token (turnableToString turnable) ExpectingTurnable)
+                    Parser.token (Parser.Token (turnableToString turnable) (ExpectingTurnable { previousTurnString = previousTurn }))
             in
             Parser.map (\_ -> turnable) token
     in

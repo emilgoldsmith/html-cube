@@ -401,18 +401,17 @@ problemToFromStringError { inputString, problem, index, unexpectedString } =
         EmptyAlgorithmParsingProblem ->
             EmptyAlgorithm
 
-        ExpectingTurnable { previousTurnString } ->
-            let
-                workedWithoutWhitespace =
-                    turnWouldHaveWorkedWithoutWhitespace
-                        inputString
-                        index
-            in
-            if workedWithoutWhitespace.worked then
+        ExpectingTurnable { previousTurnString, previousTurnStartCol } ->
+            if
+                turnWouldHaveWorkedWithoutWhitespace
+                    { unexpectedString = unexpectedString
+                    , previousTurnString = previousTurnString
+                    }
+            then
                 InvalidTurnWouldWorkWithoutSpace
                     { inputString = inputString
-                    , wrongWhitespaceStart = workedWithoutWhitespace.whitespaceStart
-                    , wrongWhitespaceEnd = workedWithoutWhitespace.whitespaceEnd
+                    , wrongWhitespaceStart = previousTurnStartCol + String.length previousTurnString - 1
+                    , wrongWhitespaceEnd = index
                     }
 
             else if
@@ -457,88 +456,13 @@ problemToFromStringError { inputString, problem, index, unexpectedString } =
             UnexpectedError "A problem we never expected to happen happened anyway"
 
 
-type StateHelper
-    = BeforeInvalidTurnable Int
-    | WhitespaceBeforeNeighbour
-        { invalidTurnable : String
-        , whitespaceEnd : Int
-        , curIndex : Int
-        }
-    | Done
-        { invalidTurnable : String
-        , neighbour : String
-        , whitespaceStart : Int
-        , whitespaceEnd : Int
-        }
-
-
 turnWouldHaveWorkedWithoutWhitespace :
-    String
-    -> Int
-    ->
-        { worked : Bool
-        , whitespaceStart : Int
-        , whitespaceEnd : Int
-        }
-turnWouldHaveWorkedWithoutWhitespace string index =
-    let
-        -- Note that we fold from the right
-        failedTurnableToLeftNeighbour =
-            String.foldr
-                (\char state ->
-                    case state of
-                        BeforeInvalidTurnable curIndex ->
-                            if curIndex > index then
-                                BeforeInvalidTurnable (curIndex - 1)
-
-                            else
-                                WhitespaceBeforeNeighbour
-                                    { invalidTurnable = String.fromChar char
-                                    , whitespaceEnd = curIndex
-                                    , curIndex = curIndex - 1
-                                    }
-
-                        WhitespaceBeforeNeighbour localState ->
-                            if isWhitespace char then
-                                WhitespaceBeforeNeighbour
-                                    { localState
-                                        | curIndex = localState.curIndex - 1
-                                    }
-
-                            else
-                                Done
-                                    { invalidTurnable = localState.invalidTurnable
-                                    , neighbour = String.fromChar char
-                                    , whitespaceStart = localState.curIndex + 1
-                                    , whitespaceEnd = localState.whitespaceEnd
-                                    }
-
-                        Done localState ->
-                            Done localState
-                )
-                (BeforeInvalidTurnable (String.length string - 1))
-                string
-    in
-    case failedTurnableToLeftNeighbour of
-        Done { invalidTurnable, neighbour, whitespaceStart, whitespaceEnd } ->
-            case Parser.run algorithmParser (neighbour ++ invalidTurnable) of
-                Ok _ ->
-                    { worked = True
-                    , whitespaceStart = whitespaceStart
-                    , whitespaceEnd = whitespaceEnd
-                    }
-
-                Err _ ->
-                    { worked = False
-                    , whitespaceStart = -1
-                    , whitespaceEnd = -1
-                    }
-
-        _ ->
-            { worked = False
-            , whitespaceStart = -1
-            , whitespaceEnd = -1
-            }
+    { previousTurnString : String
+    , unexpectedString : String
+    }
+    -> Bool
+turnWouldHaveWorkedWithoutWhitespace { previousTurnString, unexpectedString } =
+    resultToBool (Parser.run algorithmParser (previousTurnString ++ unexpectedString))
 
 
 turnWouldHaveWorkedWithLengthAndDirectionSwapped :
@@ -594,7 +518,10 @@ type alias OurParser result =
 
 
 type ParsingProblem
-    = ExpectingTurnable { previousTurnString : String }
+    = ExpectingTurnable
+        { previousTurnString : String
+        , previousTurnStartCol : Int
+        }
     | EmptyAlgorithmParsingProblem
     | UnexpectedEnd
     | WillNeverOccur
@@ -616,7 +543,7 @@ algorithmParser =
         |. Parser.chompWhile (\c -> isWhitespace c || c == '(')
         |= Parser.loop
             { turnList = []
-            , lastTurnString = ""
+            , lastTurn = ( "", -1 )
             }
             buildTurnListLoop
         |> Parser.andThen verifyNotEmptyParser
@@ -624,27 +551,28 @@ algorithmParser =
 
 buildTurnListLoop :
     { turnList : List Turn
-    , lastTurnString : String
+    , lastTurn : ( String, Int )
     }
     ->
         OurParser
             (Parser.Step
                 { turnList : List Turn
-                , lastTurnString : String
+                , lastTurn : ( String, Int )
                 }
                 (List Turn)
             )
-buildTurnListLoop { turnList, lastTurnString } =
+buildTurnListLoop { turnList, lastTurn } =
     Parser.oneOf
         [ Parser.succeed
-            (\( turnString, turn ) ->
+            (\turnStartCol ( turnString, turn ) ->
                 Parser.Loop
                     { turnList = turn :: turnList
-                    , lastTurnString = turnString
+                    , lastTurn = ( turnString, turnStartCol )
                     }
             )
             |. Parser.chompWhile (\c -> c == '(')
-            |= Parser.mapChompedString Tuple.pair (turnParser lastTurnString)
+            |= Parser.getCol
+            |= Parser.mapChompedString Tuple.pair (turnParser lastTurn)
             |. Parser.chompWhile (\c -> isWhitespace c || c == ')')
         , Parser.succeed ()
             |. Parser.end UnexpectedEnd
@@ -653,7 +581,7 @@ buildTurnListLoop { turnList, lastTurnString } =
         ]
 
 
-turnParser : String -> OurParser Turn
+turnParser : ( String, Int ) -> OurParser Turn
 turnParser previousTurn =
     Parser.succeed Turn
         |= turnableParser previousTurn
@@ -661,13 +589,21 @@ turnParser previousTurn =
         |= directionParser
 
 
-turnableParser : String -> OurParser Turnable
+turnableParser : ( String, Int ) -> OurParser Turnable
 turnableParser previousTurn =
     let
         turnableToTokenParser turnable =
             let
                 token =
-                    Parser.token (Parser.Token (turnableToString turnable) (ExpectingTurnable { previousTurnString = previousTurn }))
+                    Parser.token
+                        (Parser.Token
+                            (turnableToString turnable)
+                            (ExpectingTurnable
+                                { previousTurnString = Tuple.first previousTurn
+                                , previousTurnStartCol = Tuple.second previousTurn
+                                }
+                            )
+                        )
             in
             Parser.map (\_ -> turnable) token
     in

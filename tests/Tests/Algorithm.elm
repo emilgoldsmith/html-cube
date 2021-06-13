@@ -64,8 +64,8 @@ fromStringTests =
 
                             Err error ->
                                 case error of
-                                    Algorithm.ParserCrashed message ->
-                                        Expect.fail ("ParserCrashed should never occur. The message was `" ++ message ++ "`")
+                                    Algorithm.UnexpectedError message ->
+                                        Expect.fail ("UnexpectedError should never occur. The message was `" ++ message ++ "`")
 
                                     _ ->
                                         Expect.pass
@@ -143,15 +143,57 @@ fromStringTests =
                                 , invalidTurnable = "2"
                                 }
                         )
+        , test "errors on newline between turns" <|
+            \_ ->
+                Algorithm.fromString "U2'\nU"
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.SpansOverSeveralLines "U2'\nU"
+                        )
+        , test "errors on leading newline" <|
+            \_ ->
+                Algorithm.fromString "\nU2'U"
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.SpansOverSeveralLines "\nU2'U"
+                        )
+        , test "errors on trailing newline" <|
+            \_ ->
+                Algorithm.fromString "U2'U\n"
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.SpansOverSeveralLines "U2'U\n"
+                        )
+        , test "errors on newline between turns windows style" <|
+            \_ ->
+                -- \u{000D} is the carriage return character \r but elm
+                -- format forces it to this style. See
+                -- https://github.com/avh4/elm-format/issues/376
+                Algorithm.fromString "U2'\u{000D}\nU"
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.SpansOverSeveralLines "U2'\u{000D}\nU"
+                        )
+        , test "errors on leading newline windows style" <|
+            \_ ->
+                Algorithm.fromString "\u{000D}\nU2'U"
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.SpansOverSeveralLines "\u{000D}\nU2'U"
+                        )
+        , test "errors on trailing newline windows style" <|
+            \_ ->
+                Algorithm.fromString "U2'U\u{000D}\n"
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.SpansOverSeveralLines "U2'U\u{000D}\n"
+                        )
         , test "errors on turn length 4" <|
             \_ ->
                 Algorithm.fromString "U4" |> Expect.err
         , test "errors on turn length 1" <|
             \_ ->
                 Algorithm.fromString "U1" |> Expect.err
-        , test "errors on newline between turns" <|
-            \_ ->
-                Algorithm.fromString "U2'\nU" |> Expect.err
         , todo "test parentheses"
         , todo "The turnable specified twice should be tested for a good error message"
 

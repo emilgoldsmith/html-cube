@@ -228,7 +228,8 @@ type FromStringError
         { inputString : String
         , errorIndex : Int
         }
-    | ParserCrashed String
+    | SpansOverSeveralLines String
+    | UnexpectedError String
 
 
 {-| Placeholder
@@ -244,44 +245,175 @@ parserErrorToFromStringError :
     -> List (Parser.DeadEnd Never ParsingProblem)
     -> FromStringError
 parserErrorToFromStringError string deadends =
-    case deadends of
-        [] ->
-            ParserCrashed "Unexpected empty deadends at an error"
+    let
+        deadendsInfo =
+            parseDeadEnds deadends string
+    in
+    case deadendsInfo of
+        Err error ->
+            error
 
-        { problem, col, row } :: _ ->
-            if row /= 1 then
-                ParserCrashed "An error occurred not at row 1, when we only allow a single row"
+        Ok { problem, col, unexpectedString } ->
+            problemToFromStringError
+                { problem = problem
+                , index = col - 1
+                , inputString = string
+                , unexpectedString = unexpectedString
+                }
+
+
+type DeadEndsStateHelper
+    = NoDeadEndsYet
+    | Success Int (Maybe ParsingProblem)
+    | Error FromStringError
+
+
+parseDeadEnds :
+    List (Parser.DeadEnd Never ParsingProblem)
+    -> String
+    ->
+        Result
+            FromStringError
+            { problem : ParsingProblem
+            , col : Int
+            , unexpectedString : String
+            }
+parseDeadEnds deadends inputString =
+    let
+        parseResult =
+            List.foldl
+                (\deadend state ->
+                    if deadend.problem == WillNeverOccur then
+                        Error
+                            (UnexpectedError
+                                ("An unexpected type of error occured we"
+                                    ++ " did not expect ever to trigger"
+                                )
+                            )
+
+                    else
+                        case state of
+                            NoDeadEndsYet ->
+                                if deadend.row /= 1 then
+                                    Error
+                                        (UnexpectedError
+                                            ("An error occured on a non-first row when there should"
+                                                ++ " only ever be one row"
+                                            )
+                                        )
+
+                                else
+                                    Success
+                                        deadend.col
+                                        (getRelevantProblem deadend)
+
+                            Success col relevantProblem ->
+                                if deadend.row /= 1 then
+                                    Error
+                                        (UnexpectedError
+                                            ("An error occured on a non-first row when there should"
+                                                ++ " only ever be one row"
+                                            )
+                                        )
+
+                                else if deadend.col /= col then
+                                    Error
+                                        (UnexpectedError
+                                            ("An error occured on a different column"
+                                                ++ " when we expected all errors to always be"
+                                                ++ " on the same column"
+                                            )
+                                        )
+
+                                else
+                                    case
+                                        ( relevantProblem, getRelevantProblem deadend )
+                                    of
+                                        ( Nothing, x ) ->
+                                            Success col x
+
+                                        ( x, Nothing ) ->
+                                            Success col x
+
+                                        ( x, y ) ->
+                                            if x == y then
+                                                Success col x
+
+                                            else
+                                                Error
+                                                    (UnexpectedError
+                                                        ("Didn't expect several different relevant problems"
+                                                            ++ " in dead ends list"
+                                                        )
+                                                    )
+
+                            Error x ->
+                                Error x
+                )
+                NoDeadEndsYet
+                deadends
+    in
+    case parseResult of
+        Error error ->
+            Err error
+
+        NoDeadEndsYet ->
+            Err
+                (UnexpectedError
+                    ("dead end parser finished without"
+                        ++ " encountering any dead ends"
+                    )
+                )
+
+        Success _ Nothing ->
+            Err
+                (UnexpectedError
+                    ("dead end parser finished without"
+                        ++ " finding a relevant problem"
+                    )
+                )
+
+        Success col (Just problem) ->
+            let
+                unexpectedString =
+                    String.slice (col - 1) col inputString
+            in
+            if unexpectedString == "" && problem /= EmptyAlgorithmParsingProblem then
+                Err
+                    (UnexpectedError
+                        ("dead end parser finished without"
+                            ++ " finding an unexpected string"
+                        )
+                    )
 
             else
-                problemToFromStringError
-                    { problem = problem
-                    , index = col - 1
-                    , inputString = string
-                    }
+                Ok { col = col, problem = problem, unexpectedString = unexpectedString }
 
 
+getRelevantProblem : Parser.DeadEnd Never ParsingProblem -> Maybe ParsingProblem
+getRelevantProblem { problem } =
+    case problem of
+        ExpectingTurnable ->
+            Just problem
 
--- parseDeadEnds :
---     List (Parser.DeadEnd Never ParsingProblem)
---     -> Result FromStringError {
---         problem : ParsingProblem
---     , col : Int}
--- parseDeadEnds deadends =
---     List.foldl
---         (\deadend result->
---             Result.andThen ({problem, col, row} ->
---                 if col != deadend.col then
---                     Err (ParserCrashed "Columns weren't the same")
---                 else if row != ))
+        EmptyAlgorithmParsingProblem ->
+            Just problem
+
+        UnexpectedEnd ->
+            Nothing
+
+        WillNeverOccur ->
+            Nothing
 
 
 problemToFromStringError :
     { inputString : String
     , problem : ParsingProblem
     , index : Int
+    , unexpectedString : String
     }
     -> FromStringError
-problemToFromStringError { inputString, problem, index } =
+problemToFromStringError { inputString, problem, index, unexpectedString } =
     case problem of
         EmptyAlgorithmParsingProblem ->
             EmptyAlgorithm
@@ -309,6 +441,11 @@ problemToFromStringError { inputString, problem, index } =
                     { inputString = inputString
                     , errorIndex = index - 1
                     }
+                -- \u{000D} is the carriage return character \r but elm format forces it to
+                -- this style. see https://github.com/avh4/elm-format/issues/376
+
+            else if unexpectedString == "\n" || unexpectedString == "\u{000D}" then
+                SpansOverSeveralLines inputString
 
             else
                 InvalidTurnable
@@ -318,10 +455,10 @@ problemToFromStringError { inputString, problem, index } =
                     }
 
         UnexpectedEnd ->
-            ParserCrashed "We Expected UnexpectedEnd Problems To Have Been Filtered Out"
+            UnexpectedError "We Expected UnexpectedEnd Problems To Have Been Filtered Out"
 
         WillNeverOccur ->
-            ParserCrashed "A problem we never expected to happen happened anyway"
+            UnexpectedError "A problem we never expected to happen happened anyway"
 
 
 type StateHelper
@@ -472,7 +609,9 @@ buildTurnListLoop currentTurnList =
             |= turnParser
             |. Parser.chompWhile (\c -> isWhitespace c || c == ')')
         , Parser.succeed ()
-            |. Parser.end UnexpectedEnd
+            |. Parser.oneOf
+                [ Parser.end UnexpectedEnd
+                ]
             |> Parser.map
                 (\_ -> Parser.Done (List.reverse currentTurnList))
         ]

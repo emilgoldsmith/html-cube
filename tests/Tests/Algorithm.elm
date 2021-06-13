@@ -190,10 +190,26 @@ fromStringTests =
                         )
         , test "errors on turn length 4" <|
             \_ ->
-                Algorithm.fromString "U4" |> Expect.err
+                Algorithm.fromString "U4"
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.InvalidTurnLength
+                                { inputString = "U4"
+                                , errorIndex = 1
+                                , invalidLength = "4"
+                                }
+                        )
         , test "errors on turn length 1" <|
             \_ ->
-                Algorithm.fromString "U1" |> Expect.err
+                Algorithm.fromString "B'F3U1"
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.InvalidTurnLength
+                                { inputString = "B'F3U1"
+                                , errorIndex = 5
+                                , invalidLength = "1"
+                                }
+                        )
         , todo "test parentheses"
         , todo "The turnable specified twice should be tested for a good error message"
 

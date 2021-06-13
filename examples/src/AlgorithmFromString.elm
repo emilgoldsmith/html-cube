@@ -182,8 +182,19 @@ viewError error =
                     -- One of several ways to ensure the arrow is indented
                     -- exactly the right amount, as different characters have
                     -- different widths, so just using spaces etc. isn't enough
-                    [ span [ style "visibility" "hidden" ] [ text (String.slice 0 errorIndex inputString)]
+                    [ span [ style "visibility" "hidden" ] [ text (String.slice 0 errorIndex inputString) ]
                     , text "^"
+                    ]
+                ]
+
+        Algorithm.SpansOverSeveralLines _ ->
+            div []
+                [ div []
+                    [ text
+                        ("Algorithm is spanning over several lines,"
+                            ++ " but is only allowed to be all"
+                            ++ " on a single line of text"
+                        )
                     ]
                 ]
 

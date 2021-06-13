@@ -109,13 +109,6 @@ viewError error =
             text "You must input an algorithm"
 
         Algorithm.InvalidTurnable { inputString, errorIndex, invalidTurnable } ->
-            let
-                before =
-                    String.slice 0 errorIndex inputString
-
-                invalidOne =
-                    String.slice errorIndex (errorIndex + 1) inputString
-            in
             div []
                 [ div []
                     [ text "Invalid turnable "
@@ -129,7 +122,9 @@ viewError error =
                     -- One of several ways to ensure the arrow is indented
                     -- exactly the right amount, as different characters have
                     -- different widths, so just using spaces etc. isn't enough
-                    [ span [ style "visibility" "hidden" ] [ text before ]
+                    [ span [ style "visibility" "hidden" ]
+                        [ text (String.slice 0 errorIndex inputString)
+                        ]
                     , text "^"
                     ]
                 ]
@@ -195,6 +190,27 @@ viewError error =
                             ++ " but is only allowed to be all"
                             ++ " on a single line of text"
                         )
+                    ]
+                ]
+
+        Algorithm.InvalidTurnLength { inputString, errorIndex, invalidLength } ->
+            div []
+                [ div []
+                    [ text "Invalid turn length "
+                    , em [] [ strong [] [ text invalidLength ] ]
+                    , text ". I only allow 2, 3 or nothing as turn lengths"
+                    ]
+                , div [ style "white-space" "pre" ]
+                    [ text inputString
+                    ]
+                , div [ style "white-space" "pre" ]
+                    -- One of several ways to ensure the arrow is indented
+                    -- exactly the right amount, as different characters have
+                    -- different widths, so just using spaces etc. isn't enough
+                    [ span [ style "visibility" "hidden" ]
+                        [ text (String.slice 0 errorIndex inputString)
+                        ]
+                    , text "^"
                     ]
                 ]
 

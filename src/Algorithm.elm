@@ -216,7 +216,11 @@ type FromStringError
         , errorIndex : Int
         , invalidTurnable : String
         }
-    | InvalidTurnLength String
+    | InvalidTurnLength
+        { inputString : String
+        , errorIndex : Int
+        , invalidLength : String
+        }
     | InvalidCharacter Char
     | RepeatedTurnable String
     | InvalidTurnWouldWorkWithoutSpace
@@ -447,6 +451,19 @@ problemToFromStringError { inputString, problem, index, unexpectedString } =
             else if unexpectedString == "\n" || unexpectedString == "\u{000D}" then
                 SpansOverSeveralLines inputString
 
+            else if
+                wasInvalidTurnLength
+                    { inputString = inputString
+                    , index = index
+                    , unexpectedString = unexpectedString
+                    }
+            then
+                InvalidTurnLength
+                    { inputString = inputString
+                    , errorIndex = index
+                    , invalidLength = unexpectedString
+                    }
+
             else
                 InvalidTurnable
                     { inputString = inputString
@@ -566,6 +583,33 @@ turnWouldHaveWorkedWithLengthAndDirectionSwapped string errorIndex =
 
         Err _ ->
             False
+
+
+wasInvalidTurnLength :
+    { inputString : String
+    , index : Int
+    , unexpectedString : String
+    }
+    -> Bool
+wasInvalidTurnLength { inputString, index, unexpectedString } =
+    if index == 0 || String.toInt unexpectedString == Nothing then
+        False
+
+    else
+        let
+            possibleTurnWithValidTurn =
+                String.slice (index - 1) index inputString ++ "2"
+        in
+        case Parser.run algorithmParser possibleTurnWithValidTurn of
+            -- If the turn was valid if the number was changed to 2
+            -- it was indeed an invalid turn length
+            Ok _ ->
+                True
+
+            -- If this didn't work either invalid turn length wasn't the only
+            -- problem at least
+            Err _ ->
+                False
 
 
 

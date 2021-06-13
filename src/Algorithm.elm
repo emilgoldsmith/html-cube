@@ -267,12 +267,6 @@ parserErrorToFromStringError string deadends =
                 }
 
 
-type DeadEndsStateHelper
-    = NoDeadEndsYet
-    | Success Int (Maybe ParsingProblem)
-    | Error FromStringError
-
-
 parseDeadEnds :
     List (Parser.DeadEnd Never ParsingProblem)
     -> String

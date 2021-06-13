@@ -8,6 +8,7 @@ module Algorithm exposing (Algorithm, Turn(..), TurnDirection(..), TurnLength(..
 
 import Monads.ListM as ListM
 import Parser.Advanced as Parser exposing ((|.), (|=), Parser)
+import Set
 import Utils.Enumerator
 
 
@@ -284,114 +285,98 @@ parseDeadEnds :
             }
 parseDeadEnds deadends inputString =
     let
-        parseResult =
-            List.foldl
-                (\deadend state ->
-                    if deadend.problem == WillNeverOccur then
-                        Error
-                            (UnexpectedError
-                                ("An unexpected type of error occured we"
-                                    ++ " did not expect ever to trigger"
-                                )
-                            )
+        hasWillNeverOccur =
+            List.member WillNeverOccur (List.map .problem deadends)
 
-                    else
-                        case state of
-                            NoDeadEndsYet ->
-                                if deadend.row /= 1 then
-                                    Error
-                                        (UnexpectedError
-                                            ("An error occured on a non-first row when there should"
-                                                ++ " only ever be one row"
-                                            )
-                                        )
+        erroredOnNonFirstRow =
+            not <|
+                List.isEmpty <|
+                    List.filter ((/=) 1) (List.map .row deadends)
 
-                                else
-                                    Success
-                                        deadend.col
-                                        (getRelevantProblem deadend)
+        uniqueColValues =
+            List.map .col deadends
+                -- Filter same values
+                |> Set.fromList
+                |> Set.toList
 
-                            Success col relevantProblem ->
-                                if deadend.row /= 1 then
-                                    Error
-                                        (UnexpectedError
-                                            ("An error occured on a non-first row when there should"
-                                                ++ " only ever be one row"
-                                            )
-                                        )
+        colResult =
+            case uniqueColValues of
+                [ x ] ->
+                    Ok x
 
-                                else if deadend.col /= col then
-                                    Error
-                                        (UnexpectedError
-                                            ("An error occured on a different column"
-                                                ++ " when we expected all errors to always be"
-                                                ++ " on the same column"
-                                            )
-                                        )
+                [] ->
+                    Err "No col values found in deadends"
 
-                                else
-                                    case
-                                        ( relevantProblem, getRelevantProblem deadend )
-                                    of
-                                        ( Nothing, x ) ->
-                                            Success col x
-
-                                        ( x, Nothing ) ->
-                                            Success col x
-
-                                        ( x, y ) ->
-                                            if x == y then
-                                                Success col x
-
-                                            else
-                                                Error
-                                                    (UnexpectedError
-                                                        ("Didn't expect several different relevant problems"
-                                                            ++ " in dead ends list"
-                                                        )
-                                                    )
-
-                            Error x ->
-                                Error x
-                )
-                NoDeadEndsYet
-                deadends
-    in
-    case parseResult of
-        Error error ->
-            Err error
-
-        NoDeadEndsYet ->
-            Err
-                (UnexpectedError
-                    ("dead end parser finished without"
-                        ++ " encountering any dead ends"
-                    )
-                )
-
-        Success _ Nothing ->
-            Err
-                (UnexpectedError
-                    ("dead end parser finished without"
-                        ++ " finding a relevant problem"
-                    )
-                )
-
-        Success col (Just problem) ->
-            let
-                unexpectedString =
-                    String.slice (col - 1) col inputString
-            in
-            if unexpectedString == "" && problem /= EmptyAlgorithmParsingProblem then
-                Err
-                    (UnexpectedError
-                        ("dead end parser finished without"
-                            ++ " finding an unexpected string"
+                _ ->
+                    Err
+                        ("Found several different col values in"
+                            ++ " deadends which we didn't expect"
                         )
-                    )
 
-            else
-                Ok { col = col, problem = problem, unexpectedString = unexpectedString }
+        relevantProblemResult =
+            case List.filterMap getRelevantProblem deadends of
+                [] ->
+                    Err "No relevant problems were found in deadends"
+
+                x :: xs ->
+                    List.foldl
+                        (\problem result ->
+                            case result of
+                                Err err ->
+                                    Err err
+
+                                Ok y ->
+                                    if y == problem then
+                                        Ok y
+
+                                    else
+                                        Err
+                                            ("Several different relevant problems"
+                                                ++ " encountered in deadends unexpectedly"
+                                            )
+                        )
+                        (Ok x)
+                        xs
+    in
+    Result.mapError UnexpectedError <|
+        if hasWillNeverOccur then
+            Err
+                "An error we though would never occur occurred unexpectedly"
+
+        else if erroredOnNonFirstRow then
+            Err
+                ("An error occurred on a non first row unexpectedly when there"
+                    ++ " should only ever be one row parsed"
+                )
+
+        else
+            Result.map2 Tuple.pair
+                colResult
+                relevantProblemResult
+                |> Result.andThen
+                    (\( col, relevantProblem ) ->
+                        let
+                            unexpectedString =
+                                String.slice (col - 1) col inputString
+                        in
+                        if
+                            unexpectedString
+                                == ""
+                                && relevantProblem
+                                /= EmptyAlgorithmParsingProblem
+                        then
+                            Err
+                                ("dead end parser finished without"
+                                    ++ " finding an unexpected string"
+                                )
+
+                        else
+                            Ok
+                                { col = col
+                                , problem = relevantProblem
+                                , unexpectedString = unexpectedString
+                                }
+                    )
 
 
 getRelevantProblem : Parser.DeadEnd Never ParsingProblem -> Maybe ParsingProblem

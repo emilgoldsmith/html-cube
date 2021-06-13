@@ -619,7 +619,7 @@ algorithmParser : OurParser Algorithm
 algorithmParser =
     Parser.succeed Algorithm
         -- Ignore leading whitespace
-        |. Parser.chompWhile isWhitespace
+        |. Parser.chompWhile (\c -> isWhitespace c || c == '(')
         |= Parser.loop [] buildTurnListLoop
         |> Parser.andThen verifyNotEmptyParser
 
@@ -632,9 +632,7 @@ buildTurnListLoop currentTurnList =
             |= turnParser
             |. Parser.chompWhile (\c -> isWhitespace c || c == ')')
         , Parser.succeed ()
-            |. Parser.oneOf
-                [ Parser.end UnexpectedEnd
-                ]
+            |. Parser.end UnexpectedEnd
             |> Parser.map
                 (\_ -> Parser.Done (List.reverse currentTurnList))
         ]

@@ -222,8 +222,10 @@ type FromStringError
         , errorIndex : Int
         , invalidLength : String
         }
-    | InvalidCharacter Char
-    | RepeatedTurnable String
+    | RepeatedTurnable
+        { inputString : String
+        , errorIndex : Int
+        }
     | InvalidTurnWouldWorkWithoutSpace
         { inputString : String
         , wrongWhitespaceStart : Int
@@ -234,6 +236,7 @@ type FromStringError
         , errorIndex : Int
         }
     | SpansOverSeveralLines String
+    | InvalidCharacter Char
     | UnexpectedError String
 
 
@@ -356,8 +359,7 @@ parseDeadEnds deadends inputString =
                         if
                             unexpectedString
                                 == ""
-                                && relevantProblem
-                                /= EmptyAlgorithmParsingProblem
+                                && unexpectedStringExpected relevantProblem
                         then
                             Err
                                 ("dead end parser finished without"
@@ -373,6 +375,25 @@ parseDeadEnds deadends inputString =
                     )
 
 
+unexpectedStringExpected : ParsingProblem -> Bool
+unexpectedStringExpected problem =
+    case problem of
+        EmptyAlgorithmParsingProblem ->
+            False
+
+        RepeatedTurnableParsingProblem _ ->
+            False
+
+        ExpectingTurnable _ ->
+            True
+
+        WillNeverOccur ->
+            True
+
+        UnexpectedEnd ->
+            True
+
+
 getRelevantProblem : Parser.DeadEnd Never ParsingProblem -> Maybe ParsingProblem
 getRelevantProblem { problem } =
     case problem of
@@ -380,6 +401,9 @@ getRelevantProblem { problem } =
             Just problem
 
         EmptyAlgorithmParsingProblem ->
+            Just problem
+
+        RepeatedTurnableParsingProblem _ ->
             Just problem
 
         UnexpectedEnd ->
@@ -448,6 +472,12 @@ problemToFromStringError { inputString, problem, index, unexpectedString } =
                     , errorIndex = index
                     , invalidTurnable = String.slice index (index + 1) inputString
                     }
+
+        RepeatedTurnableParsingProblem { previousTurnString, previousTurnStartCol } ->
+            RepeatedTurnable
+                { inputString = inputString
+                , errorIndex = previousTurnStartCol + String.length previousTurnString - 1
+                }
 
         UnexpectedEnd ->
             UnexpectedError "We Expected UnexpectedEnd Problems To Have Been Filtered Out"
@@ -522,6 +552,10 @@ type ParsingProblem
         { previousTurnString : String
         , previousTurnStartCol : Int
         }
+    | RepeatedTurnableParsingProblem
+        { previousTurnString : String
+        , previousTurnStartCol : Int
+        }
     | EmptyAlgorithmParsingProblem
     | UnexpectedEnd
     | WillNeverOccur
@@ -572,7 +606,26 @@ buildTurnListLoop { turnList, lastTurn } =
             )
             |. Parser.chompWhile (\c -> c == '(')
             |= Parser.getCol
-            |= Parser.mapChompedString Tuple.pair (turnParser lastTurn)
+            |= (Parser.mapChompedString Tuple.pair (turnParser lastTurn)
+                    |> Parser.andThen
+                        (\(( _, Turn turnable _ _ ) as parserResult) ->
+                            case List.head turnList of
+                                Just (Turn previousTurnable _ _) ->
+                                    if previousTurnable == turnable then
+                                        Parser.problem
+                                            (RepeatedTurnableParsingProblem
+                                                { previousTurnString = Tuple.first lastTurn
+                                                , previousTurnStartCol = Tuple.second lastTurn
+                                                }
+                                            )
+
+                                    else
+                                        Parser.succeed parserResult
+
+                                Nothing ->
+                                    Parser.succeed parserResult
+                        )
+               )
             |. Parser.chompWhile (\c -> isWhitespace c || c == ')')
         , Parser.succeed ()
             |. Parser.end UnexpectedEnd

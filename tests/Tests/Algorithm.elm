@@ -4,7 +4,7 @@ module Tests.Algorithm exposing (algorithmFuzzer, appendTests, fromStringTests, 
 to a cube. Enjoy!
 -}
 
-import Algorithm
+import Algorithm exposing (Algorithm)
 import Expect
 import Fuzz
 import Test exposing (..)
@@ -16,18 +16,20 @@ fromStringTests =
         [ fuzz validAlgorithmString "successfully parses valid algorithm strings" <|
             Algorithm.fromString
                 >> Expect.ok
-        , fuzz2 algorithmFuzzer turnSeparator "a rendered algorithm is correctly retrieved no matter the separator" <|
+        , fuzz2 fromStringValidAlgorithmFuzzer turnSeparator "a rendered algorithm is correctly retrieved no matter the separator" <|
             \alg separator ->
                 renderAlgorithm alg separator
                     |> Algorithm.fromString
                     |> Expect.equal (Ok alg)
         , test "handles differing whitespace separation between turns" <|
             \_ ->
-                Algorithm.fromString "U U  U\tU   U  \t U    \t    U"
+                Algorithm.fromString "U B  U\tB   U  \t B    \t    U"
                     |> Expect.equal
                         (Ok <|
                             Algorithm.build <|
-                                List.repeat 7 (Algorithm.Turn Algorithm.U Algorithm.OneQuarter Algorithm.Clockwise)
+                                (List.repeat 4 (Algorithm.Turn Algorithm.U Algorithm.OneQuarter Algorithm.Clockwise)
+                                    |> List.intersperse (Algorithm.Turn Algorithm.B Algorithm.OneQuarter Algorithm.Clockwise)
+                                )
                         )
         , test "handles leading and trailing whitespace" <|
             \_ ->
@@ -46,11 +48,15 @@ fromStringTests =
                         )
         , test "handles parentheses" <|
             \_ ->
-                Algorithm.fromString "(U) U (U U)"
+                Algorithm.fromString "(U) B (U B)"
                     |> Expect.equal
                         (Ok <|
-                            Algorithm.build <|
-                                List.repeat 4 (Algorithm.Turn Algorithm.U Algorithm.OneQuarter Algorithm.Clockwise)
+                            Algorithm.build
+                                [ Algorithm.Turn Algorithm.U Algorithm.OneQuarter Algorithm.Clockwise
+                                , Algorithm.Turn Algorithm.B Algorithm.OneQuarter Algorithm.Clockwise
+                                , Algorithm.Turn Algorithm.U Algorithm.OneQuarter Algorithm.Clockwise
+                                , Algorithm.Turn Algorithm.B Algorithm.OneQuarter Algorithm.Clockwise
+                                ]
                         )
         , fuzz obviouslyInvalidAlgorithmString "errors on invalid algorithms, but never crashes" <|
             Algorithm.fromString
@@ -145,48 +151,48 @@ fromStringTests =
                         )
         , test "errors on newline between turns" <|
             \_ ->
-                Algorithm.fromString "U2'\nU"
+                Algorithm.fromString "U2'\nB"
                     |> Expect.equal
                         (Err <|
-                            Algorithm.SpansOverSeveralLines "U2'\nU"
+                            Algorithm.SpansOverSeveralLines "U2'\nB"
                         )
         , test "errors on leading newline" <|
             \_ ->
-                Algorithm.fromString "\nU2'U"
+                Algorithm.fromString "\nU2'B"
                     |> Expect.equal
                         (Err <|
-                            Algorithm.SpansOverSeveralLines "\nU2'U"
+                            Algorithm.SpansOverSeveralLines "\nU2'B"
                         )
         , test "errors on trailing newline" <|
             \_ ->
-                Algorithm.fromString "U2'U\n"
+                Algorithm.fromString "U2'B\n"
                     |> Expect.equal
                         (Err <|
-                            Algorithm.SpansOverSeveralLines "U2'U\n"
+                            Algorithm.SpansOverSeveralLines "U2'B\n"
                         )
         , test "errors on newline between turns windows style" <|
             \_ ->
                 -- \u{000D} is the carriage return character \r but elm
                 -- format forces it to this style. See
                 -- https://github.com/avh4/elm-format/issues/376
-                Algorithm.fromString "U2'\u{000D}\nU"
+                Algorithm.fromString "U2'\u{000D}\nB"
                     |> Expect.equal
                         (Err <|
-                            Algorithm.SpansOverSeveralLines "U2'\u{000D}\nU"
+                            Algorithm.SpansOverSeveralLines "U2'\u{000D}\nB"
                         )
         , test "errors on leading newline windows style" <|
             \_ ->
-                Algorithm.fromString "\u{000D}\nU2'U"
+                Algorithm.fromString "\u{000D}\nU2'B"
                     |> Expect.equal
                         (Err <|
-                            Algorithm.SpansOverSeveralLines "\u{000D}\nU2'U"
+                            Algorithm.SpansOverSeveralLines "\u{000D}\nU2'B"
                         )
         , test "errors on trailing newline windows style" <|
             \_ ->
-                Algorithm.fromString "U2'U\u{000D}\n"
+                Algorithm.fromString "U2'B\u{000D}\n"
                     |> Expect.equal
                         (Err <|
-                            Algorithm.SpansOverSeveralLines "U2'U\u{000D}\n"
+                            Algorithm.SpansOverSeveralLines "U2'B\u{000D}\n"
                         )
         , test "errors on turn length 4" <|
             \_ ->
@@ -210,9 +216,18 @@ fromStringTests =
                                 , invalidLength = "1"
                                 }
                         )
+        , test "The same turnable specified twice in a row errors" <|
+            \_ ->
+                Algorithm.fromString "U2'U'"
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.RepeatedTurnable
+                                { inputString = "U2'U'"
+                                , errorIndex = 3
+                                }
+                        )
 
         -- , todo "test parentheses"
-        -- , todo "The turnable specified twice should be tested for a good error message"
         -- Seems like the only use for that could be to specify not to double flick in a special case? But should be safe to error on that and assume it's an input error
         ]
 
@@ -220,7 +235,7 @@ fromStringTests =
 toStringTests : Test
 toStringTests =
     describe "toString"
-        [ fuzz algorithmFuzzer "stringified algorithm decodes back to original value" <|
+        [ fuzz fromStringValidAlgorithmFuzzer "stringified algorithm decodes back to original value" <|
             \algorithm ->
                 algorithm
                     |> Algorithm.toString
@@ -376,10 +391,37 @@ obviouslyInvalidAlgorithmString =
 
 validAlgorithmString : Fuzz.Fuzzer String
 validAlgorithmString =
-    Fuzz.map2 renderAlgorithm algorithmFuzzer turnSeparator
+    Fuzz.map2 renderAlgorithm fromStringValidAlgorithmFuzzer turnSeparator
 
 
-algorithmFuzzer : Fuzz.Fuzzer Algorithm.Algorithm
+fromStringValidAlgorithmFuzzer : Fuzz.Fuzzer Algorithm
+fromStringValidAlgorithmFuzzer =
+    -- We remove any neighbouring duplicate
+    -- turnables as those are invalid for fromString
+    Fuzz.map
+        (\algorithm ->
+            Algorithm.toTurnList algorithm
+                |> List.foldl
+                    (\((Algorithm.Turn nextTurnable _ _) as turn) turnList ->
+                        case turnList of
+                            [] ->
+                                [ turn ]
+
+                            (Algorithm.Turn prevTurnable _ _) :: _ ->
+                                if nextTurnable == prevTurnable then
+                                    turnList
+
+                                else
+                                    turn :: turnList
+                    )
+                    []
+                |> List.reverse
+                |> Algorithm.build
+        )
+        algorithmFuzzer
+
+
+algorithmFuzzer : Fuzz.Fuzzer Algorithm
 algorithmFuzzer =
     let
         nonEmptyTurnList =
@@ -388,7 +430,7 @@ algorithmFuzzer =
     Fuzz.map Algorithm.build nonEmptyTurnList
 
 
-renderAlgorithm : Algorithm.Algorithm -> String -> String
+renderAlgorithm : Algorithm -> String -> String
 renderAlgorithm alg separator =
     let
         renderedTurnList =

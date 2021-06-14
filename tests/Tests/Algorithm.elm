@@ -271,8 +271,27 @@ fromStringTests =
                         (Err <|
                             Algorithm.NestedParentheses
                         )
-
-        -- TODO: Unexpected character error
+        , fuzz
+            (Fuzz.oneOf
+                (List.map
+                    Fuzz.constant
+                    [ '%'
+                    , '+'
+                    , '-'
+                    , '~'
+                    , '&'
+                    , '*'
+                    ]
+                )
+            )
+            "Errors informatively when encountering unexpected symbol"
+          <|
+            \invalidSymbol ->
+                Algorithm.fromString ("U" ++ String.fromChar invalidSymbol ++ " B2")
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.InvalidSymbol invalidSymbol
+                        )
         ]
 
 

@@ -390,7 +390,7 @@ unexpectedStringExpected problem =
         WillNeverOccur ->
             True
 
-        UnexpectedEnd ->
+        ExpectingEnd ->
             True
 
 
@@ -406,7 +406,7 @@ getRelevantProblem { problem } =
         RepeatedTurnableParsingProblem _ ->
             Just problem
 
-        UnexpectedEnd ->
+        ExpectingEnd ->
             Nothing
 
         WillNeverOccur ->
@@ -479,7 +479,7 @@ problemToFromStringError { inputString, problem, index, unexpectedString } =
                 , errorIndex = previousTurnStartCol + String.length previousTurnString - 1
                 }
 
-        UnexpectedEnd ->
+        ExpectingEnd ->
             UnexpectedError "We Expected UnexpectedEnd Problems To Have Been Filtered Out"
 
         WillNeverOccur ->
@@ -557,7 +557,7 @@ type ParsingProblem
         , previousTurnStartCol : Int
         }
     | EmptyAlgorithmParsingProblem
-    | UnexpectedEnd
+    | ExpectingEnd
     | WillNeverOccur
 
 
@@ -628,7 +628,7 @@ buildTurnListLoop { turnList, lastTurn } =
                )
             |. Parser.chompWhile (\c -> isWhitespace c || c == ')')
         , Parser.succeed ()
-            |. Parser.end UnexpectedEnd
+            |. Parser.end ExpectingEnd
             |> Parser.map
                 (\_ -> Parser.Done (List.reverse turnList))
         ]

@@ -226,10 +226,10 @@ type FromStringError
         { inputString : String
         , errorIndex : Int
         }
-    | InvalidTurnWouldWorkWithoutSpace
+    | TurnInterrupted
         { inputString : String
-        , wrongWhitespaceStart : Int
-        , wrongWhitespaceEnd : Int
+        , interruptionStart : Int
+        , interruptionEnd : Int
         }
     | InvalidTurnApostropheWrongSideOfLength
         { inputString : String
@@ -473,10 +473,10 @@ problemToFromStringError { inputString, problem, index, unexpectedString } =
                     , previousTurnString = previousTurnString
                     }
             then
-                InvalidTurnWouldWorkWithoutSpace
+                TurnInterrupted
                     { inputString = inputString
-                    , wrongWhitespaceStart = previousTurnStartCol + String.length previousTurnString - 1
-                    , wrongWhitespaceEnd = index
+                    , interruptionStart = previousTurnStartCol + String.length previousTurnString - 1
+                    , interruptionEnd = index
                     }
 
             else if

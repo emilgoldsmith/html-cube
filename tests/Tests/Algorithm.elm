@@ -111,10 +111,10 @@ fromStringTests =
                 Algorithm.fromString "U  \t '"
                     |> Expect.equal
                         (Err <|
-                            Algorithm.InvalidTurnWouldWorkWithoutSpace
+                            Algorithm.TurnInterrupted
                                 { inputString = "U  \t '"
-                                , wrongWhitespaceStart = 1
-                                , wrongWhitespaceEnd = 5
+                                , interruptionStart = 1
+                                , interruptionEnd = 5
                                 }
                         )
         , test "errors on space between turnable and turn length" <|
@@ -122,10 +122,10 @@ fromStringTests =
                 Algorithm.fromString "U \t \t 2"
                     |> Expect.equal
                         (Err <|
-                            Algorithm.InvalidTurnWouldWorkWithoutSpace
+                            Algorithm.TurnInterrupted
                                 { inputString = "U \t \t 2"
-                                , wrongWhitespaceStart = 1
-                                , wrongWhitespaceEnd = 6
+                                , interruptionStart = 1
+                                , interruptionEnd = 6
                                 }
                         )
         , test "errors on apostrophe before turn length" <|
@@ -270,6 +270,17 @@ fromStringTests =
                     |> Expect.equal
                         (Err <|
                             Algorithm.NestedParentheses
+                        )
+        , test "Errors as expected on parenthesis breaking up a turn" <|
+            \_ ->
+                Algorithm.fromString "U(2')"
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.TurnInterrupted
+                                { inputString = "U(2')"
+                                , interruptionStart = 1
+                                , interruptionEnd = 2
+                                }
                         )
         , fuzz
             (Fuzz.oneOf

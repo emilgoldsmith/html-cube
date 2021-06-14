@@ -214,5 +214,24 @@ viewError error =
                     ]
                 ]
 
+        Algorithm.RepeatedTurnable { inputString, errorIndex } ->
+            div []
+                [ div []
+                    [ text
+                        ("You repeated the same turnable twice in a row."
+                            ++ " Try instead of things like UU to write U2 instead"
+                        )
+                    ]
+                , div [ style "white-space" "pre" ]
+                    [ text inputString
+                    ]
+                , div [ style "white-space" "pre" ]
+                    -- One of several ways to ensure the arrow is indented
+                    -- exactly the right amount, as different characters have
+                    -- different widths, so just using spaces etc. isn't enough
+                    [ span [ style "visibility" "hidden" ] [ text (String.slice 0 errorIndex inputString) ]
+                    , text "^"
+                    ]
+                ]
         _ ->
             text "error"

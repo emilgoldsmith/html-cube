@@ -240,7 +240,7 @@ type FromStringError
     | EmptyParentheses
     | NestedParentheses
     | SpansOverSeveralLines String
-    | InvalidCharacter Char
+    | InvalidSymbol Char
     | UnexpectedError String
 
 
@@ -513,6 +513,11 @@ problemToFromStringError { inputString, problem, index, unexpectedString } =
                     , invalidLength = unexpectedString
                     }
 
+            else if Tuple.first <| wasUnexpectedCharacter unexpectedString then
+                InvalidSymbol <|
+                    Tuple.second <|
+                        wasUnexpectedCharacter unexpectedString
+
             else
                 InvalidTurnable
                     { inputString = inputString
@@ -577,6 +582,30 @@ wasInvalidTurnLength { previousTurnString, unexpectedString } =
         -- If it succeeds we know it was an invalid turn length
         && resultToBool
             (Parser.run algorithmParser (previousTurnString ++ "2"))
+
+
+wasUnexpectedCharacter : String -> ( Bool, Char )
+wasUnexpectedCharacter string =
+    case String.uncons string of
+        Nothing ->
+            ( False, ' ' )
+
+        Just ( char, _ ) ->
+            if
+                Char.isAlphaNum char
+                    || char
+                    == '('
+                    || char
+                    == ')'
+                    || char
+                    == '\''
+                    || resultToBool
+                        (Parser.run algorithmParser (String.fromChar char))
+            then
+                ( False, ' ' )
+
+            else
+                ( True, char )
 
 
 maybeToBool : Maybe a -> Bool

@@ -255,14 +255,14 @@ fromStringTests =
                 Algorithm.fromString "U2 () B"
                     |> Expect.equal
                         (Err <|
-                            Algorithm.EmptyParenthesis
+                            Algorithm.EmptyParentheses
                         )
         , test "Errors on empty parenthesis set at start of string" <|
             \_ ->
                 Algorithm.fromString "() U2 B"
                     |> Expect.equal
                         (Err <|
-                            Algorithm.EmptyParenthesis
+                            Algorithm.EmptyParentheses
                         )
         , test "Errors on nested sets of parentheses" <|
             \_ ->

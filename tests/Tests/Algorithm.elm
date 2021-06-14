@@ -111,7 +111,7 @@ fromStringTests =
                 Algorithm.fromString "U  \t '"
                     |> Expect.equal
                         (Err <|
-                            Algorithm.TurnInterrupted
+                            Algorithm.TurnWouldWorkWithoutInterruption
                                 { inputString = "U  \t '"
                                 , interruptionStart = 1
                                 , interruptionEnd = 5
@@ -122,7 +122,7 @@ fromStringTests =
                 Algorithm.fromString "U \t \t 2"
                     |> Expect.equal
                         (Err <|
-                            Algorithm.TurnInterrupted
+                            Algorithm.TurnWouldWorkWithoutInterruption
                                 { inputString = "U \t \t 2"
                                 , interruptionStart = 1
                                 , interruptionEnd = 6
@@ -276,7 +276,7 @@ fromStringTests =
                 Algorithm.fromString "U(2')"
                     |> Expect.equal
                         (Err <|
-                            Algorithm.TurnInterrupted
+                            Algorithm.TurnWouldWorkWithoutInterruption
                                 { inputString = "U(2')"
                                 , interruptionStart = 1
                                 , interruptionEnd = 2

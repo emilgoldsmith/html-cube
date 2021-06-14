@@ -237,7 +237,7 @@ type FromStringError
         }
     | UnclosedParentheses
     | UnmatchedClosingParenthesis
-    | EmptyParenthesis
+    | EmptyParentheses
     | NestedParentheses
     | SpansOverSeveralLines String
     | InvalidCharacter Char
@@ -398,6 +398,9 @@ unexpectedStringExpected problem =
         UnclosedParenthesesParsingProblem ->
             False
 
+        EmptyParenthesesParsingProblem ->
+            False
+
         ExpectingTurnable _ ->
             True
 
@@ -429,6 +432,9 @@ getRelevantProblem { problem } =
         UnclosedParenthesesParsingProblem ->
             Just ( problem, 2 )
 
+        EmptyParenthesesParsingProblem ->
+            Just ( problem, 2 )
+
         ExpectingOpeningParenthesis ->
             Nothing
 
@@ -456,6 +462,9 @@ problemToFromStringError { inputString, problem, index, unexpectedString } =
 
         UnclosedParenthesesParsingProblem ->
             UnclosedParentheses
+
+        EmptyParenthesesParsingProblem ->
+            EmptyParentheses
 
         ExpectingTurnable { previousTurnString, previousTurnStartCol } ->
             if
@@ -485,6 +494,12 @@ problemToFromStringError { inputString, problem, index, unexpectedString } =
 
             else if unexpectedString == "\n" || unexpectedString == "\u{000D}" then
                 SpansOverSeveralLines inputString
+
+            else if unexpectedString == ")" then
+                UnmatchedClosingParenthesis
+
+            else if unexpectedString == "(" then
+                NestedParentheses
 
             else if
                 wasInvalidTurnLength
@@ -594,6 +609,7 @@ type ParsingProblem
     | ExpectingOpeningParenthesis
     | ExpectingClosingParenthesis
     | UnclosedParenthesesParsingProblem
+    | EmptyParenthesesParsingProblem
     | EmptyAlgorithmParsingProblem
     | ExpectingEnd
     | WillNeverOccur
@@ -614,7 +630,7 @@ algorithmParser =
         |= Parser.loop
             { turnList = []
             , lastTurn = ( "", 0 )
-            , insideParentheses = False
+            , insideParentheses = Nothing
             }
             buildTurnListLoop
         |> Parser.andThen verifyNotEmptyParser
@@ -623,7 +639,7 @@ algorithmParser =
 type alias ParserState =
     { turnList : List Turn
     , lastTurn : ( String, Int )
-    , insideParentheses : Bool
+    , insideParentheses : Maybe Int
     }
 
 
@@ -638,30 +654,34 @@ buildTurnListLoop :
 buildTurnListLoop state =
     Parser.succeed identity
         |. whitespaceParser
-        |= (if not state.insideParentheses then
-                Parser.oneOf
-                    [ Parser.symbol (Parser.Token "(" ExpectingOpeningParenthesis)
-                        |> Parser.map
-                            (always <|
-                                Parser.Loop { state | insideParentheses = True }
-                            )
-                    , parseTurnLoop state
-                    , Parser.end ExpectingEnd
-                        |> Parser.map
-                            (\_ -> Parser.Done (List.reverse state.turnList))
-                    ]
+        |= (case state.insideParentheses of
+                Nothing ->
+                    Parser.oneOf
+                        [ Parser.succeed (\col -> Parser.Loop { state | insideParentheses = Just col })
+                            |= Parser.getCol
+                            |. Parser.symbol (Parser.Token "(" ExpectingOpeningParenthesis)
+                        , parseTurnLoop state
+                        , Parser.end ExpectingEnd
+                            |> Parser.map
+                                (\_ -> Parser.Done (List.reverse state.turnList))
+                        ]
 
-            else
-                Parser.oneOf
-                    [ Parser.symbol (Parser.Token ")" ExpectingClosingParenthesis)
-                        |> Parser.map
-                            (always <|
-                                Parser.Loop { state | insideParentheses = False }
-                            )
-                    , parseTurnLoop state
-                    , Parser.end ExpectingEnd
-                        |> Parser.andThen (always <| Parser.problem UnclosedParenthesesParsingProblem)
-                    ]
+                Just parenthesesStartCol ->
+                    Parser.oneOf
+                        [ Parser.symbol (Parser.Token ")" ExpectingClosingParenthesis)
+                            |> Parser.andThen
+                                (\_ ->
+                                    if Tuple.second state.lastTurn > parenthesesStartCol then
+                                        Parser.succeed
+                                            (Parser.Loop { state | insideParentheses = Nothing })
+
+                                    else
+                                        Parser.problem EmptyParenthesesParsingProblem
+                                )
+                        , parseTurnLoop state
+                        , Parser.end ExpectingEnd
+                            |> Parser.andThen (always <| Parser.problem UnclosedParenthesesParsingProblem)
+                        ]
            )
 
 

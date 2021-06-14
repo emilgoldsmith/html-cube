@@ -129,7 +129,7 @@ viewError error =
                     ]
                 ]
 
-        Algorithm.InvalidTurnWouldWorkWithoutSpace { inputString, wrongWhitespaceStart, wrongWhitespaceEnd } ->
+        Algorithm.TurnWouldWorkWithoutInterruption { inputString, interruptionStart, interruptionEnd } ->
             div []
                 [ div []
                     [ text

@@ -226,7 +226,7 @@ type FromStringError
         { inputString : String
         , errorIndex : Int
         }
-    | TurnInterrupted
+    | TurnWouldWorkWithoutInterruption
         { inputString : String
         , interruptionStart : Int
         , interruptionEnd : Int
@@ -236,11 +236,27 @@ type FromStringError
         , errorIndex : Int
         }
     | UnclosedParentheses
+        { inputString : String
+        , openParenthesisIndex : Int
+        }
     | UnmatchedClosingParenthesis
+        { inputString : String
+        , errorIndex : Int
+        }
     | EmptyParentheses
+        { inputString : String
+        , errorIndex : Int
+        }
     | NestedParentheses
+        { inputString : String
+        , errorIndex : Int
+        }
     | SpansOverSeveralLines String
-    | InvalidSymbol Char
+    | InvalidSymbol
+        { inputString : String
+        , errorIndex : Int
+        , symbol : Char
+        }
     | UnexpectedError String
 
 
@@ -473,7 +489,7 @@ problemToFromStringError { inputString, problem, index, unexpectedString } =
                     , previousTurnString = previousTurnString
                     }
             then
-                TurnInterrupted
+                TurnWouldWorkWithoutInterruption
                     { inputString = inputString
                     , interruptionStart = previousTurnStartCol + String.length previousTurnString - 1
                     , interruptionEnd = index

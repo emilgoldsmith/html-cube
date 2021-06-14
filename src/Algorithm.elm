@@ -235,6 +235,10 @@ type FromStringError
         { inputString : String
         , errorIndex : Int
         }
+    | UnclosedParentheses
+    | UnmatchedClosingParenthesis
+    | EmptyParenthesis
+    | NestedParentheses
     | SpansOverSeveralLines String
     | InvalidCharacter Char
     | UnexpectedError String
@@ -311,29 +315,36 @@ parseDeadEnds deadends inputString =
                         )
 
         relevantProblemResult =
-            case List.filterMap getRelevantProblem deadends of
-                [] ->
-                    Err "No relevant problems were found in deadends"
+            Result.map Tuple.first <|
+                case List.filterMap getRelevantProblem deadends of
+                    [] ->
+                        Err "No relevant problems were found in deadends"
 
-                x :: xs ->
-                    List.foldl
-                        (\problem result ->
-                            case result of
-                                Err err ->
-                                    Err err
+                    x :: xs ->
+                        List.foldl
+                            (\problem result ->
+                                case result of
+                                    Err err ->
+                                        Err err
 
-                                Ok y ->
-                                    if y == problem then
-                                        Ok y
+                                    Ok y ->
+                                        if Tuple.first y == Tuple.first problem then
+                                            Ok y
 
-                                    else
-                                        Err
-                                            ("Several different relevant problems"
-                                                ++ " encountered in deadends unexpectedly"
-                                            )
-                        )
-                        (Ok x)
-                        xs
+                                        else if Tuple.second y > Tuple.second problem then
+                                            Ok y
+
+                                        else if Tuple.second y < Tuple.second problem then
+                                            Ok problem
+
+                                        else
+                                            Err
+                                                ("Several different relevant problems with same"
+                                                    ++ " importance level encountered in deadends unexpectedly"
+                                                )
+                            )
+                            (Ok x)
+                            xs
     in
     Result.mapError UnexpectedError <|
         if hasWillNeverOccur then
@@ -384,7 +395,16 @@ unexpectedStringExpected problem =
         RepeatedTurnableParsingProblem _ ->
             False
 
+        UnclosedParenthesesParsingProblem ->
+            False
+
         ExpectingTurnable _ ->
+            True
+
+        ExpectingClosingParenthesis ->
+            True
+
+        ExpectingOpeningParenthesis ->
             True
 
         WillNeverOccur ->
@@ -394,17 +414,26 @@ unexpectedStringExpected problem =
             True
 
 
-getRelevantProblem : Parser.DeadEnd Never ParsingProblem -> Maybe ParsingProblem
+getRelevantProblem : Parser.DeadEnd Never ParsingProblem -> Maybe ( ParsingProblem, Int )
 getRelevantProblem { problem } =
     case problem of
         ExpectingTurnable _ ->
-            Just problem
+            Just ( problem, 1 )
 
         EmptyAlgorithmParsingProblem ->
-            Just problem
+            Just ( problem, 2 )
 
         RepeatedTurnableParsingProblem _ ->
-            Just problem
+            Just ( problem, 2 )
+
+        UnclosedParenthesesParsingProblem ->
+            Just ( problem, 2 )
+
+        ExpectingOpeningParenthesis ->
+            Nothing
+
+        ExpectingClosingParenthesis ->
+            Nothing
 
         ExpectingEnd ->
             Nothing
@@ -424,6 +453,9 @@ problemToFromStringError { inputString, problem, index, unexpectedString } =
     case problem of
         EmptyAlgorithmParsingProblem ->
             EmptyAlgorithm
+
+        UnclosedParenthesesParsingProblem ->
+            UnclosedParentheses
 
         ExpectingTurnable { previousTurnString, previousTurnStartCol } ->
             if
@@ -484,6 +516,9 @@ problemToFromStringError { inputString, problem, index, unexpectedString } =
 
         WillNeverOccur ->
             UnexpectedError "A problem we never expected to happen happened anyway"
+
+        _ ->
+            UnexpectedError "TBD"
 
 
 turnWouldHaveWorkedWithoutWhitespace :
@@ -556,6 +591,9 @@ type ParsingProblem
         { previousTurnString : String
         , previousTurnStartCol : Int
         }
+    | ExpectingOpeningParenthesis
+    | ExpectingClosingParenthesis
+    | UnclosedParenthesesParsingProblem
     | EmptyAlgorithmParsingProblem
     | ExpectingEnd
     | WillNeverOccur
@@ -573,65 +611,96 @@ isWhitespace c =
 algorithmParser : OurParser Algorithm
 algorithmParser =
     Parser.succeed Algorithm
-        -- Ignore leading whitespace
-        |. Parser.chompWhile (\c -> isWhitespace c || c == '(')
         |= Parser.loop
             { turnList = []
-            , lastTurn = ( "", -1 )
+            , lastTurn = ( "", 0 )
+            , insideParentheses = False
             }
             buildTurnListLoop
         |> Parser.andThen verifyNotEmptyParser
 
 
-buildTurnListLoop :
+type alias ParserState =
     { turnList : List Turn
     , lastTurn : ( String, Int )
+    , insideParentheses : Bool
     }
+
+
+buildTurnListLoop :
+    ParserState
     ->
         OurParser
             (Parser.Step
-                { turnList : List Turn
-                , lastTurn : ( String, Int )
-                }
+                ParserState
                 (List Turn)
             )
-buildTurnListLoop { turnList, lastTurn } =
-    Parser.oneOf
-        [ Parser.succeed
-            (\turnStartCol ( turnString, turn ) ->
-                Parser.Loop
-                    { turnList = turn :: turnList
-                    , lastTurn = ( turnString, turnStartCol )
-                    }
-            )
-            |. Parser.chompWhile (\c -> c == '(')
-            |= Parser.getCol
-            |= (Parser.mapChompedString Tuple.pair (turnParser lastTurn)
-                    |> Parser.andThen
-                        (\(( _, Turn turnable _ _ ) as parserResult) ->
-                            case List.head turnList of
-                                Just (Turn previousTurnable _ _) ->
-                                    if previousTurnable == turnable then
-                                        Parser.problem
-                                            (RepeatedTurnableParsingProblem
-                                                { previousTurnString = Tuple.first lastTurn
-                                                , previousTurnStartCol = Tuple.second lastTurn
-                                                }
-                                            )
+buildTurnListLoop state =
+    Parser.succeed identity
+        |. whitespaceParser
+        |= (if not state.insideParentheses then
+                Parser.oneOf
+                    [ Parser.symbol (Parser.Token "(" ExpectingOpeningParenthesis)
+                        |> Parser.map
+                            (always <|
+                                Parser.Loop { state | insideParentheses = True }
+                            )
+                    , parseTurnLoop state
+                    , Parser.end ExpectingEnd
+                        |> Parser.map
+                            (\_ -> Parser.Done (List.reverse state.turnList))
+                    ]
 
-                                    else
-                                        Parser.succeed parserResult
+            else
+                Parser.oneOf
+                    [ Parser.symbol (Parser.Token ")" ExpectingClosingParenthesis)
+                        |> Parser.map
+                            (always <|
+                                Parser.Loop { state | insideParentheses = False }
+                            )
+                    , parseTurnLoop state
+                    , Parser.end ExpectingEnd
+                        |> Parser.andThen (always <| Parser.problem UnclosedParenthesesParsingProblem)
+                    ]
+           )
 
-                                Nothing ->
+
+parseTurnLoop : ParserState -> OurParser (Parser.Step ParserState a)
+parseTurnLoop state =
+    Parser.succeed
+        (\turnStartCol ( turnString, turn ) ->
+            Parser.Loop
+                { turnList = turn :: state.turnList
+                , lastTurn = ( turnString, turnStartCol )
+                , insideParentheses = state.insideParentheses
+                }
+        )
+        |= Parser.getCol
+        |= (Parser.mapChompedString Tuple.pair (turnParser state.lastTurn)
+                |> Parser.andThen
+                    (\(( _, Turn turnable _ _ ) as parserResult) ->
+                        case List.head state.turnList of
+                            Just (Turn previousTurnable _ _) ->
+                                if previousTurnable == turnable then
+                                    Parser.problem
+                                        (RepeatedTurnableParsingProblem
+                                            { previousTurnString = Tuple.first state.lastTurn
+                                            , previousTurnStartCol = Tuple.second state.lastTurn
+                                            }
+                                        )
+
+                                else
                                     Parser.succeed parserResult
-                        )
-               )
-            |. Parser.chompWhile (\c -> isWhitespace c || c == ')')
-        , Parser.succeed ()
-            |. Parser.end ExpectingEnd
-            |> Parser.map
-                (\_ -> Parser.Done (List.reverse turnList))
-        ]
+
+                            Nothing ->
+                                Parser.succeed parserResult
+                    )
+           )
+
+
+whitespaceParser : OurParser ()
+whitespaceParser =
+    Parser.chompWhile isWhitespace
 
 
 turnParser : ( String, Int ) -> OurParser Turn

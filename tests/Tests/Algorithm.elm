@@ -216,6 +216,9 @@ fromStringTests =
                                 , invalidLength = "1"
                                 }
                         )
+
+        -- Seems like the only use for that could be to specify not to double flick in a
+        -- special case? But should be safe to error on that and assume it's an input error
         , test "The same turnable specified twice in a row errors" <|
             \_ ->
                 Algorithm.fromString "U2'U'"
@@ -226,9 +229,50 @@ fromStringTests =
                                 , errorIndex = 3
                                 }
                         )
+        , test "Never closing a set of parentheses errors" <|
+            \_ ->
+                Algorithm.fromString "(U2B'"
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.UnclosedParentheses
+                        )
+        , test "Errors on an unmatched closing parenthesis" <|
+            \_ ->
+                Algorithm.fromString "U2B)"
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.UnmatchedClosingParenthesis
+                        )
+        , test "Errors on starting algorithm with closing parenthesis" <|
+            \_ ->
+                Algorithm.fromString ")U2B"
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.UnmatchedClosingParenthesis
+                        )
+        , test "Errors on empty parenthesis set" <|
+            \_ ->
+                Algorithm.fromString "U2 () B"
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.EmptyParenthesis
+                        )
+        , test "Errors on empty parenthesis set at start of string" <|
+            \_ ->
+                Algorithm.fromString "() U2 B"
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.EmptyParenthesis
+                        )
+        , test "Errors on nested sets of parentheses" <|
+            \_ ->
+                Algorithm.fromString "(U2 (B R) B)"
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.NestedParentheses
+                        )
 
-        -- , todo "test parentheses"
-        -- Seems like the only use for that could be to specify not to double flick in a special case? But should be safe to error on that and assume it's an input error
+        -- TODO: Unexpected character error
         ]
 
 

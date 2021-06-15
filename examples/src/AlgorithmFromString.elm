@@ -134,7 +134,7 @@ viewError error =
                 [ div []
                     [ text
                         ("Encountered a turn that couldn't be parsed. The turn would"
-                            ++ " be valid if the below space was removed. Was that what you intended?"
+                            ++ " be valid if the below interruption was removed. Was that what you intended?"
                         )
                     ]
                 , div [ style "white-space" "pre" ]
@@ -146,15 +146,15 @@ viewError error =
                     -- different widths, so just using spaces etc. isn't enough
                     [ span
                         [ style "visibility" "hidden" ]
-                        [ text (String.slice 0 (wrongWhitespaceStart - 1) inputString)
+                        [ text (String.slice 0 (interruptionStart - 1) inputString)
                         ]
                     , text "^"
                     , span
                         [ style "visibility" "hidden" ]
                         [ text
                             (String.slice
-                                wrongWhitespaceStart
-                                (wrongWhitespaceEnd - 2)
+                                interruptionStart
+                                (interruptionEnd - 2)
                                 inputString
                             )
                         ]
@@ -233,5 +233,122 @@ viewError error =
                     , text "^"
                     ]
                 ]
-        _ ->
-            text "error"
+
+        Algorithm.UnclosedParentheses { inputString, openParenthesisIndex } ->
+            div []
+                [ div []
+                    [ text
+                        "This opening parenthesis was never closed"
+                    ]
+                , div [ style "white-space" "pre" ]
+                    [ text inputString
+                    ]
+                , div [ style "white-space" "pre" ]
+                    -- One of several ways to ensure the arrow is indented
+                    -- exactly the right amount, as different characters have
+                    -- different widths, so just using spaces etc. isn't enough
+                    [ span [ style "visibility" "hidden" ] [ text (String.slice 0 openParenthesisIndex inputString) ]
+                    , text "^"
+                    ]
+                ]
+
+        Algorithm.UnmatchedClosingParenthesis { inputString, errorIndex } ->
+            div []
+                [ div []
+                    [ text
+                        "This closing parenthesis had no matching opening parenthesis"
+                    ]
+                , div [ style "white-space" "pre" ]
+                    [ text inputString
+                    ]
+                , div [ style "white-space" "pre" ]
+                    -- One of several ways to ensure the arrow is indented
+                    -- exactly the right amount, as different characters have
+                    -- different widths, so just using spaces etc. isn't enough
+                    [ span [ style "visibility" "hidden" ] [ text (String.slice 0 errorIndex inputString) ]
+                    , text "^"
+                    ]
+                ]
+
+        Algorithm.EmptyParentheses { inputString, errorIndex } ->
+            div []
+                [ div []
+                    [ text
+                        "These parentheses weren't enclosing any turns"
+                    ]
+                , div [ style "white-space" "pre" ]
+                    [ text inputString
+                    ]
+                , div [ style "white-space" "pre" ]
+                    -- One of several ways to ensure the arrow is indented
+                    -- exactly the right amount, as different characters have
+                    -- different widths, so just using spaces etc. isn't enough
+                    [ span [ style "visibility" "hidden" ] [ text (String.slice 0 errorIndex inputString) ]
+                    , text "^"
+                    ]
+                ]
+
+        Algorithm.NestedParentheses { inputString, errorIndex } ->
+            div []
+                [ div []
+                    [ text
+                        ("Nested parentheses are not normally used in algorithm"
+                            ++ " so we don't allowe it."
+                        )
+                    ]
+                , div [ style "white-space" "pre" ]
+                    [ text inputString
+                    ]
+                , div [ style "white-space" "pre" ]
+                    -- One of several ways to ensure the arrow is indented
+                    -- exactly the right amount, as different characters have
+                    -- different widths, so just using spaces etc. isn't enough
+                    [ span [ style "visibility" "hidden" ] [ text (String.slice 0 errorIndex inputString) ]
+                    , text "^"
+                    ]
+                ]
+
+        Algorithm.InvalidSymbol { inputString, errorIndex, symbol } ->
+            div []
+                [ div []
+                    [ text
+                        ("A symbol, `"
+                            ++ String.fromChar symbol
+                            ++ "`, which we never"
+                            ++ " expected to see was encountered. Remove it"
+                            ++ " or replace it if it was a typo"
+                        )
+                    ]
+                , div [ style "white-space" "pre" ]
+                    [ text inputString
+                    ]
+                , div [ style "white-space" "pre" ]
+                    -- One of several ways to ensure the arrow is indented
+                    -- exactly the right amount, as different characters have
+                    -- different widths, so just using spaces etc. isn't enough
+                    [ span [ style "visibility" "hidden" ] [ text (String.slice 0 errorIndex inputString) ]
+                    , text "^"
+                    ]
+                ]
+
+        Algorithm.UnexpectedError { inputString, errorIndex } ->
+            div []
+                [ div []
+                    [ text
+                        ("Congratulations! You provided a type of error"
+                            ++ " we never considered as a possibility!"
+                            ++ " This sadly means you'll also have to figure"
+                            ++ " out the cause by yourself though"
+                        )
+                    ]
+                , div [ style "white-space" "pre" ]
+                    [ text inputString
+                    ]
+                , div [ style "white-space" "pre" ]
+                    -- One of several ways to ensure the arrow is indented
+                    -- exactly the right amount, as different characters have
+                    -- different widths, so just using spaces etc. isn't enough
+                    [ span [ style "visibility" "hidden" ] [ text (String.slice 0 errorIndex inputString) ]
+                    , text "^"
+                    ]
+                ]

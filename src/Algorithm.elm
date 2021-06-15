@@ -753,6 +753,7 @@ buildTurnListLoop :
             )
 buildTurnListLoop state =
     Parser.succeed identity
+        -- Deal with any whitespace between turns or parentheses
         |. whitespaceParser
         |= (case state.maybeStartParenthesisIndex of
                 -- We're not currently inside a set of parentheses
@@ -772,6 +773,7 @@ buildTurnListLoop state =
                         -- If there is no turn check if we're at the end
                         , Parser.end ExpectingEnd
                             |> Parser.map
+                                -- We reverse here because the list is built with :: in reverse
                                 (\_ -> Parser.Done (state.turnList |> List.map .turn |> List.reverse))
                         ]
 
@@ -780,15 +782,19 @@ buildTurnListLoop state =
                     Parser.oneOf
                         [ -- Exiting the set of parentheses
                           Parser.symbol (Parser.Token ")" ExpectingClosingParenthesis)
+                            |> Parser.map
+                                (always
+                                    (Parser.Loop { state | maybeStartParenthesisIndex = Nothing })
+                                )
                             |> errorIfNoTurnsInParentheses
                                 state
                                 startParenthesisIndex
-                                (Parser.Loop { state | maybeStartParenthesisIndex = Nothing })
 
                         -- If no closing parenthesis we just keep parsing turns
                         , parseTurnLoop state
 
-                        -- If no turns, we error informatively if this is the end
+                        -- If no turns, we error informatively if this is the end as
+                        -- we are inside a set of parentheses so it shouldn't end yet
                         , Parser.end ExpectingEnd
                             |> andThenWithInputString
                                 (\( _, inputString ) ->
@@ -917,13 +923,12 @@ verifyNotEmptyParser (Algorithm turnList) =
 errorIfNoTurnsInParentheses :
     ParserState
     -> ParenthesisIndex
-    -> Parser.Step ParserState done
     -> OurParser a
-    -> OurParser (Parser.Step ParserState done)
-errorIfNoTurnsInParentheses state startParenthesisIndex success parser =
+    -> OurParser a
+errorIfNoTurnsInParentheses state startParenthesisIndex parser =
     parser
         |> andThenWithInputString
-            (\( _, inputString ) ->
+            (\( previousValue, inputString ) ->
                 let
                     problem =
                         Parser.problem
@@ -940,7 +945,7 @@ errorIfNoTurnsInParentheses state startParenthesisIndex success parser =
 
                     Just lastTurnstartIndex ->
                         if lastTurnstartIndex > toInt startParenthesisIndex then
-                            Parser.succeed success
+                            Parser.succeed previousValue
 
                         else
                             problem

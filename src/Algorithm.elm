@@ -312,7 +312,19 @@ parseDeadEnds deadends inputString =
         erroredOnNonFirstRow =
             not <|
                 List.isEmpty <|
-                    List.filter ((/=) 1) (List.map .row deadends)
+                    (List.filter (.row >> (/=) 1) deadends
+                        |> List.map .problem
+                        |> List.filter
+                            (\problem ->
+                                case problem of
+                                    -- We are okay with SpansOverSeveralLines erroring on
+                                    UserReadyError (SpansOverSeveralLines _) ->
+                                        False
+
+                                    _ ->
+                                        True
+                            )
+                    )
 
         uniqueColValues =
             List.map .col deadends
@@ -417,10 +429,13 @@ parseDeadEnds deadends inputString =
 unexpectedStringExpected : ParsingProblem -> Bool
 unexpectedStringExpected problem =
     case problem of
-        DirectUserProblem _ ->
+        UserReadyError _ ->
             False
 
         ExpectingTurnable _ ->
+            True
+
+        ExpectingUnwantedString _ ->
             True
 
         ExpectingClosingParenthesis ->
@@ -439,13 +454,16 @@ unexpectedStringExpected problem =
 getRelevantProblem : Parser.DeadEnd Never ParsingProblem -> Maybe ( ParsingProblem, Int )
 getRelevantProblem { problem } =
     case problem of
-        DirectUserProblem _ ->
+        UserReadyError _ ->
             Just ( problem, 3 )
 
         ExpectingTurnable _ ->
             Just ( problem, 1 )
 
         ExpectingOpeningParenthesis ->
+            Nothing
+
+        ExpectingUnwantedString _ ->
             Nothing
 
         ExpectingClosingParenthesis ->
@@ -467,22 +485,11 @@ problemToFromStringError :
     -> FromStringError
 problemToFromStringError { inputString, problem, index, unexpectedString } =
     case problem of
-        DirectUserProblem userProblem ->
+        UserReadyError userProblem ->
             userProblem
 
         ExpectingTurnable Nothing ->
-            -- \u{000D} is the carriage return character \r but elm format forces it to
-            -- this style. see https://github.com/avh4/elm-format/issues/376
-            if unexpectedString == "\n" || unexpectedString == "\u{000D}" then
-                SpansOverSeveralLines inputString
-
-            else if unexpectedString == ")" then
-                UnmatchedClosingParenthesis
-                    { inputString = inputString
-                    , errorIndex = index
-                    }
-
-            else if unexpectedString == "(" then
+            if unexpectedString == "(" then
                 NestedParentheses
                     { inputString = inputString
                     , errorIndex = index
@@ -526,17 +533,6 @@ problemToFromStringError { inputString, problem, index, unexpectedString } =
                 InvalidTurnApostropheWrongSideOfLength
                     { inputString = inputString
                     , errorIndex = index - 1
-                    }
-                -- \u{000D} is the carriage return character \r but elm format forces it to
-                -- this style. see https://github.com/avh4/elm-format/issues/376
-
-            else if unexpectedString == "\n" || unexpectedString == "\u{000D}" then
-                SpansOverSeveralLines inputString
-
-            else if unexpectedString == ")" then
-                UnmatchedClosingParenthesis
-                    { inputString = inputString
-                    , errorIndex = index
                     }
 
             else if unexpectedString == "(" then
@@ -592,6 +588,13 @@ problemToFromStringError { inputString, problem, index, unexpectedString } =
                 { inputString = inputString
                 , errorIndex = index
                 , debugInfo = "We expected ExpectingOpeningParenthesis to be filtered it"
+                }
+
+        ExpectingUnwantedString _ ->
+            UnexpectedError
+                { inputString = inputString
+                , errorIndex = index
+                , debugInfo = "We expected ExpectingUnwantedString to be filtered it"
                 }
 
         WillNeverOccur ->
@@ -688,7 +691,7 @@ type alias OurParser result =
 
 
 type ParsingProblem
-    = DirectUserProblem FromStringError
+    = UserReadyError FromStringError
     | ExpectingTurnable
         (Maybe
             { previousTurnString : String
@@ -698,7 +701,30 @@ type ParsingProblem
     | ExpectingOpeningParenthesis
     | ExpectingClosingParenthesis
     | ExpectingEnd
+    | ExpectingUnwantedString String
     | WillNeverOccur
+
+
+type alias ParserState =
+    { turnList :
+        List
+            { turn : Turn
+            , string : String
+            , startIndex : Int
+            }
+    , maybeStartParenthesisIndex : Maybe ParenthesisIndex
+    }
+
+
+{-| A type safety helper for passing it around to functions
+-}
+type ParenthesisIndex
+    = ParenthesisIndex Int
+
+
+toInt : ParenthesisIndex -> Int
+toInt (ParenthesisIndex int) =
+    int
 
 
 {-| Serves as a bit of a configuration for what whitespace
@@ -721,28 +747,6 @@ algorithmParser =
         |> Parser.andThen verifyNotEmptyParser
 
 
-{-| A type safety helper for passing it around to functions
--}
-type ParenthesisIndex
-    = ParenthesisIndex Int
-
-
-toInt : ParenthesisIndex -> Int
-toInt (ParenthesisIndex int) =
-    int
-
-
-type alias ParserState =
-    { turnList :
-        List
-            { turn : Turn
-            , string : String
-            , startIndex : Int
-            }
-    , maybeStartParenthesisIndex : Maybe ParenthesisIndex
-    }
-
-
 buildTurnListLoop :
     ParserState
     ->
@@ -755,6 +759,26 @@ buildTurnListLoop state =
     Parser.succeed identity
         -- Deal with any whitespace between turns or parentheses
         |. whitespaceParser
+        |. Parser.oneOf
+            [ Parser.token (Parser.Token "\n" (ExpectingUnwantedString "\n"))
+                |> andThenWithInputStringAndOffset
+                    (\( _, inputString, _ ) ->
+                        Parser.problem <|
+                            UserReadyError (SpansOverSeveralLines inputString)
+                    )
+
+            -- \u{000D} is the carriage return character \r but elm format forces it to
+            -- this style. see https://github.com/avh4/elm-format/issues/376
+            , Parser.token (Parser.Token "\u{000D}" (ExpectingUnwantedString "\u{000D}"))
+                |> andThenWithInputStringAndOffset
+                    (\( _, inputString, _ ) ->
+                        Parser.problem <|
+                            UserReadyError (SpansOverSeveralLines inputString)
+                    )
+
+            -- It will never fail to find an empty string
+            , Parser.token (Parser.Token "" WillNeverOccur)
+            ]
         |= (case state.maybeStartParenthesisIndex of
                 -- We're not currently inside a set of parentheses
                 Nothing ->
@@ -775,6 +799,20 @@ buildTurnListLoop state =
                             |> Parser.map
                                 -- We reverse here because the list is built with :: in reverse
                                 (\_ -> Parser.Done (state.turnList |> List.map .turn |> List.reverse))
+
+                        -- Error appropriately if we encounter a closing parenthesis when we're not
+                        -- inside a set of parentheses
+                        , Parser.token (Parser.Token ")" (ExpectingUnwantedString ")"))
+                            |> andThenWithInputStringAndOffset
+                                (\( _, inputString, offset ) ->
+                                    Parser.problem <|
+                                        UserReadyError
+                                            (UnmatchedClosingParenthesis
+                                                { inputString = inputString
+                                                , errorIndex = offset - 1
+                                                }
+                                            )
+                                )
                         ]
 
                 -- We're currently inside a set of parentheses
@@ -796,10 +834,10 @@ buildTurnListLoop state =
                         -- If no turns, we error informatively if this is the end as
                         -- we are inside a set of parentheses so it shouldn't end yet
                         , Parser.end ExpectingEnd
-                            |> andThenWithInputString
-                                (\( _, inputString ) ->
+                            |> andThenWithInputStringAndOffset
+                                (\( _, inputString, _ ) ->
                                     Parser.problem
-                                        (DirectUserProblem <|
+                                        (UserReadyError <|
                                             UnclosedParentheses
                                                 { inputString = inputString
                                                 , openParenthesisIndex = toInt startParenthesisIndex
@@ -887,12 +925,16 @@ directionParser =
         ]
 
 
+
+-- PARSER ERROR HANDLING
+
+
 verifyNotEmptyParser : Algorithm -> OurParser Algorithm
 verifyNotEmptyParser (Algorithm turnList) =
     case List.length turnList of
         0 ->
             Parser.problem
-                (DirectUserProblem EmptyAlgorithm)
+                (UserReadyError EmptyAlgorithm)
 
         _ ->
             Parser.succeed (Algorithm turnList)
@@ -905,12 +947,12 @@ errorIfNoTurnsInParentheses :
     -> OurParser a
 errorIfNoTurnsInParentheses state startParenthesisIndex parser =
     parser
-        |> andThenWithInputString
-            (\( previousValue, inputString ) ->
+        |> andThenWithInputStringAndOffset
+            (\( previousValue, inputString, _ ) ->
                 let
                     problem =
                         Parser.problem
-                            (DirectUserProblem <|
+                            (UserReadyError <|
                                 EmptyParentheses
                                     { inputString = inputString
                                     , errorIndex = toInt startParenthesisIndex
@@ -932,8 +974,8 @@ errorIfNoTurnsInParentheses state startParenthesisIndex parser =
 
 errorIfRepeatedTurnables : ParserState -> OurParser Turn -> OurParser Turn
 errorIfRepeatedTurnables state =
-    andThenWithInputString
-        (\( (Turn turnable _ _) as previousResult, inputString ) ->
+    andThenWithInputStringAndOffset
+        (\( (Turn turnable _ _) as previousResult, inputString, _ ) ->
             case
                 state.turnList
                     |> List.head
@@ -942,7 +984,7 @@ errorIfRepeatedTurnables state =
                 Just ( Turn previousTurnable _ _, lastTurnStartIndex, lastTurnString ) ->
                     if previousTurnable == turnable then
                         Parser.problem
-                            (DirectUserProblem <|
+                            (UserReadyError <|
                                 RepeatedTurnable
                                     { inputString = inputString
                                     , errorIndex =
@@ -959,10 +1001,15 @@ errorIfRepeatedTurnables state =
         )
 
 
-andThenWithInputString : (( a, String ) -> OurParser b) -> OurParser a -> OurParser b
-andThenWithInputString fn parser =
-    Parser.map Tuple.pair parser
+
+-- PARSER HELPERS
+
+
+andThenWithInputStringAndOffset : (( a, String, Int ) -> OurParser b) -> OurParser a -> OurParser b
+andThenWithInputStringAndOffset fn parser =
+    Parser.map (\a b c -> ( a, b, c )) parser
         |= Parser.getSource
+        |= Parser.getOffset
         |> Parser.andThen fn
 
 

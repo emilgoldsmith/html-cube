@@ -70,8 +70,12 @@ fromStringTests =
 
                             Err error ->
                                 case error of
-                                    Algorithm.UnexpectedError message ->
-                                        Expect.fail ("UnexpectedError should never occur. The message was `" ++ message ++ "`")
+                                    Algorithm.UnexpectedError { debugInfo } ->
+                                        Expect.fail
+                                            ("UnexpectedError should never occur. The debug info was `"
+                                                ++ debugInfo
+                                                ++ "`"
+                                            )
 
                                     _ ->
                                         Expect.pass

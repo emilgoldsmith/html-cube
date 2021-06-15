@@ -257,7 +257,11 @@ type FromStringError
         , errorIndex : Int
         , symbol : Char
         }
-    | UnexpectedError String
+    | UnexpectedError
+        { inputString : String
+        , errorIndex : Int
+        , debugInfo : String
+        }
 
 
 {-| Placeholder
@@ -362,7 +366,15 @@ parseDeadEnds deadends inputString =
                             (Ok x)
                             xs
     in
-    Result.mapError UnexpectedError <|
+    Result.mapError
+        (\debugInfo ->
+            UnexpectedError
+                { inputString = inputString
+                , errorIndex = Result.withDefault 0 colResult
+                , debugInfo = debugInfo
+                }
+        )
+    <|
         if hasWillNeverOccur then
             Err
                 "An error we though would never occur occurred unexpectedly"
@@ -564,13 +576,32 @@ problemToFromStringError { inputString, problem, index, unexpectedString } =
                 }
 
         ExpectingEnd ->
-            UnexpectedError "We Expected UnexpectedEnd Problems To Have Been Filtered Out"
+            UnexpectedError
+                { inputString = inputString
+                , errorIndex = index
+                , debugInfo = "We Expected UnexpectedEnd Problems To Have Been Filtered Out"
+                }
+
+        ExpectingClosingParenthesis ->
+            UnexpectedError
+                { inputString = inputString
+                , errorIndex = index
+                , debugInfo = "We expected ExpectingClosingParenthesis to be filtered it"
+                }
+
+        ExpectingOpeningParenthesis ->
+            UnexpectedError
+                { inputString = inputString
+                , errorIndex = index
+                , debugInfo = "We expected ExpectingOpeningParenthesis to be filtered it"
+                }
 
         WillNeverOccur ->
-            UnexpectedError "A problem we never expected to happen happened anyway"
-
-        _ ->
-            UnexpectedError "TBD"
+            UnexpectedError
+                { inputString = inputString
+                , errorIndex = index
+                , debugInfo = "A problem we never expected to happen happened anyway"
+                }
 
 
 turnWouldHaveWorkedWithoutWhitespace :

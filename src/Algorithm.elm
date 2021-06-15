@@ -417,16 +417,7 @@ parseDeadEnds deadends inputString =
 unexpectedStringExpected : ParsingProblem -> Bool
 unexpectedStringExpected problem =
     case problem of
-        EmptyAlgorithmParsingProblem ->
-            False
-
-        RepeatedTurnableParsingProblem _ ->
-            False
-
-        UnclosedParenthesesParsingProblem _ ->
-            False
-
-        EmptyParenthesesParsingProblem _ ->
+        DirectUserProblem _ ->
             False
 
         ExpectingTurnable _ ->
@@ -448,20 +439,11 @@ unexpectedStringExpected problem =
 getRelevantProblem : Parser.DeadEnd Never ParsingProblem -> Maybe ( ParsingProblem, Int )
 getRelevantProblem { problem } =
     case problem of
+        DirectUserProblem _ ->
+            Just ( problem, 3 )
+
         ExpectingTurnable _ ->
             Just ( problem, 1 )
-
-        EmptyAlgorithmParsingProblem ->
-            Just ( problem, 2 )
-
-        RepeatedTurnableParsingProblem _ ->
-            Just ( problem, 2 )
-
-        UnclosedParenthesesParsingProblem _ ->
-            Just ( problem, 2 )
-
-        EmptyParenthesesParsingProblem _ ->
-            Just ( problem, 2 )
 
         ExpectingOpeningParenthesis ->
             Nothing
@@ -485,22 +467,44 @@ problemToFromStringError :
     -> FromStringError
 problemToFromStringError { inputString, problem, index, unexpectedString } =
     case problem of
-        EmptyAlgorithmParsingProblem ->
-            EmptyAlgorithm
+        DirectUserProblem userProblem ->
+            userProblem
 
-        UnclosedParenthesesParsingProblem startParenthesisCol ->
-            UnclosedParentheses
-                { inputString = inputString
-                , openParenthesisIndex = startParenthesisCol - 1
-                }
+        ExpectingTurnable Nothing ->
+            -- \u{000D} is the carriage return character \r but elm format forces it to
+            -- this style. see https://github.com/avh4/elm-format/issues/376
+            if unexpectedString == "\n" || unexpectedString == "\u{000D}" then
+                SpansOverSeveralLines inputString
 
-        EmptyParenthesesParsingProblem openParenthesisCol ->
-            EmptyParentheses
-                { inputString = inputString
-                , errorIndex = openParenthesisCol - 1
-                }
+            else if unexpectedString == ")" then
+                UnmatchedClosingParenthesis
+                    { inputString = inputString
+                    , errorIndex = index
+                    }
 
-        ExpectingTurnable { previousTurnString, previousTurnStartCol } ->
+            else if unexpectedString == "(" then
+                NestedParentheses
+                    { inputString = inputString
+                    , errorIndex = index
+                    }
+
+            else if Tuple.first <| wasUnexpectedCharacter unexpectedString then
+                InvalidSymbol
+                    { inputString = inputString
+                    , errorIndex = index
+                    , symbol =
+                        Tuple.second <|
+                            wasUnexpectedCharacter unexpectedString
+                    }
+
+            else
+                InvalidTurnable
+                    { inputString = inputString
+                    , errorIndex = index
+                    , invalidTurnable = String.slice index (index + 1) inputString
+                    }
+
+        ExpectingTurnable (Just { previousTurnString, previousTurnstartIndex }) ->
             if
                 turnWouldHaveWorkedWithoutWhitespace
                     { unexpectedString = unexpectedString
@@ -509,7 +513,7 @@ problemToFromStringError { inputString, problem, index, unexpectedString } =
             then
                 TurnWouldWorkWithoutInterruption
                     { inputString = inputString
-                    , interruptionStart = previousTurnStartCol + String.length previousTurnString - 1
+                    , interruptionStart = previousTurnstartIndex + String.length previousTurnString
                     , interruptionEnd = index
                     }
 
@@ -568,12 +572,6 @@ problemToFromStringError { inputString, problem, index, unexpectedString } =
                     , errorIndex = index
                     , invalidTurnable = String.slice index (index + 1) inputString
                     }
-
-        RepeatedTurnableParsingProblem { previousTurnString, previousTurnStartCol } ->
-            RepeatedTurnable
-                { inputString = inputString
-                , errorIndex = previousTurnStartCol + String.length previousTurnString - 1
-                }
 
         ExpectingEnd ->
             UnexpectedError
@@ -690,19 +688,15 @@ type alias OurParser result =
 
 
 type ParsingProblem
-    = ExpectingTurnable
-        { previousTurnString : String
-        , previousTurnStartCol : Int
-        }
-    | RepeatedTurnableParsingProblem
-        { previousTurnString : String
-        , previousTurnStartCol : Int
-        }
+    = DirectUserProblem FromStringError
+    | ExpectingTurnable
+        (Maybe
+            { previousTurnString : String
+            , previousTurnstartIndex : Int
+            }
+        )
     | ExpectingOpeningParenthesis
     | ExpectingClosingParenthesis
-    | UnclosedParenthesesParsingProblem Int
-    | EmptyParenthesesParsingProblem Int
-    | EmptyAlgorithmParsingProblem
     | ExpectingEnd
     | WillNeverOccur
 
@@ -721,17 +715,31 @@ algorithmParser =
     Parser.succeed Algorithm
         |= Parser.loop
             { turnList = []
-            , lastTurn = ( "", 0 )
-            , insideParentheses = Nothing
+            , maybeStartParenthesisIndex = Nothing
             }
             buildTurnListLoop
         |> Parser.andThen verifyNotEmptyParser
 
 
+{-| A type safety helper for passing it around to functions
+-}
+type ParenthesisIndex
+    = ParenthesisIndex Int
+
+
+toInt : ParenthesisIndex -> Int
+toInt (ParenthesisIndex int) =
+    int
+
+
 type alias ParserState =
-    { turnList : List Turn
-    , lastTurn : ( String, Int )
-    , insideParentheses : Maybe Int
+    { turnList :
+        List
+            { turn : Turn
+            , string : String
+            , startIndex : Int
+            }
+    , maybeStartParenthesisIndex : Maybe ParenthesisIndex
     }
 
 
@@ -746,51 +754,51 @@ buildTurnListLoop :
 buildTurnListLoop state =
     Parser.succeed identity
         |. whitespaceParser
-        |= (case state.insideParentheses of
+        |= (case state.maybeStartParenthesisIndex of
+                -- We're not currently inside a set of parentheses
                 Nothing ->
                     Parser.oneOf
-                        [ Parser.succeed (\col -> Parser.Loop { state | insideParentheses = Just col })
-                            |= Parser.getCol
+                        [ -- Handle start of parentheses and save start index
+                          Parser.succeed
+                            (\index ->
+                                Parser.Loop { state | maybeStartParenthesisIndex = (Just << ParenthesisIndex) index }
+                            )
+                            |= Parser.getOffset
                             |. Parser.symbol (Parser.Token "(" ExpectingOpeningParenthesis)
+
+                        -- If no parenthesis try parsing a turn
                         , parseTurnLoop state
+
+                        -- If there is no turn check if we're at the end
                         , Parser.end ExpectingEnd
                             |> Parser.map
-                                (\_ -> Parser.Done (List.reverse state.turnList))
+                                (\_ -> Parser.Done (state.turnList |> List.map .turn |> List.reverse))
                         ]
 
-                Just parenthesesStartCol ->
+                -- We're currently inside a set of parentheses
+                Just startParenthesisIndex ->
                     Parser.oneOf
-                        [ Parser.symbol (Parser.Token ")" ExpectingClosingParenthesis)
-                            |> Parser.andThen
-                                (\_ ->
-                                    if Tuple.second state.lastTurn > parenthesesStartCol then
-                                        Parser.succeed
-                                            (Parser.Loop { state | insideParentheses = Nothing })
+                        [ -- Exiting the set of parentheses
+                          Parser.symbol (Parser.Token ")" ExpectingClosingParenthesis)
+                            |> errorIfNoTurnsInParentheses
+                                state
+                                startParenthesisIndex
+                                (Parser.Loop { state | maybeStartParenthesisIndex = Nothing })
 
-                                    else
-                                        case state.insideParentheses of
-                                            Just startParenthesisCol ->
-                                                Parser.problem
-                                                    (EmptyParenthesesParsingProblem
-                                                        startParenthesisCol
-                                                    )
-
-                                            Nothing ->
-                                                Parser.problem WillNeverOccur
-                                )
+                        -- If no closing parenthesis we just keep parsing turns
                         , parseTurnLoop state
-                        , Parser.end ExpectingEnd
-                            |> Parser.andThen
-                                (always <|
-                                    case state.insideParentheses of
-                                        Just startParenthesisCol ->
-                                            Parser.problem
-                                                (UnclosedParenthesesParsingProblem
-                                                    startParenthesisCol
-                                                )
 
-                                        Nothing ->
-                                            Parser.problem WillNeverOccur
+                        -- If no turns, we error informatively if this is the end
+                        , Parser.end ExpectingEnd
+                            |> andThenWithInputString
+                                (\( _, inputString ) ->
+                                    Parser.problem
+                                        (DirectUserProblem <|
+                                            UnclosedParentheses
+                                                { inputString = inputString
+                                                , openParenthesisIndex = toInt startParenthesisIndex
+                                                }
+                                        )
                                 )
                         ]
            )
@@ -799,25 +807,36 @@ buildTurnListLoop state =
 parseTurnLoop : ParserState -> OurParser (Parser.Step ParserState a)
 parseTurnLoop state =
     Parser.succeed
-        (\turnStartCol ( turnString, turn ) ->
+        (\turnStartIndex ( turnString, turn ) ->
             Parser.Loop
-                { turnList = turn :: state.turnList
-                , lastTurn = ( turnString, turnStartCol )
-                , insideParentheses = state.insideParentheses
+                { turnList =
+                    { turn = turn
+                    , string = turnString
+                    , startIndex = turnStartIndex
+                    }
+                        :: state.turnList
+                , maybeStartParenthesisIndex = state.maybeStartParenthesisIndex
                 }
         )
-        |= Parser.getCol
-        |= (Parser.mapChompedString Tuple.pair (turnParser state.lastTurn)
-                |> Parser.andThen
-                    (\(( _, Turn turnable _ _ ) as parserResult) ->
-                        case List.head state.turnList of
-                            Just (Turn previousTurnable _ _) ->
+        |= Parser.getOffset
+        |= (Parser.mapChompedString Tuple.pair (turnParser state)
+                |> andThenWithInputString
+                    (\( ( _, Turn turnable _ _ ) as parserResult, inputString ) ->
+                        case
+                            state.turnList
+                                |> List.head
+                                |> Maybe.map (\x -> ( x.turn, x.startIndex, x.string ))
+                        of
+                            Just ( Turn previousTurnable _ _, lastTurnStartIndex, lastTurnString ) ->
                                 if previousTurnable == turnable then
                                     Parser.problem
-                                        (RepeatedTurnableParsingProblem
-                                            { previousTurnString = Tuple.first state.lastTurn
-                                            , previousTurnStartCol = Tuple.second state.lastTurn
-                                            }
+                                        (DirectUserProblem <|
+                                            RepeatedTurnable
+                                                { inputString = inputString
+                                                , errorIndex =
+                                                    lastTurnStartIndex
+                                                        + String.length lastTurnString
+                                                }
                                         )
 
                                 else
@@ -829,21 +848,16 @@ parseTurnLoop state =
            )
 
 
-whitespaceParser : OurParser ()
-whitespaceParser =
-    Parser.chompWhile isWhitespace
-
-
-turnParser : ( String, Int ) -> OurParser Turn
-turnParser previousTurn =
+turnParser : ParserState -> OurParser Turn
+turnParser state =
     Parser.succeed Turn
-        |= turnableParser previousTurn
+        |= turnableParser state
         |= turnLengthParser
         |= directionParser
 
 
-turnableParser : ( String, Int ) -> OurParser Turnable
-turnableParser previousTurn =
+turnableParser : ParserState -> OurParser Turnable
+turnableParser state =
     let
         turnableToTokenParser turnable =
             let
@@ -852,9 +866,14 @@ turnableParser previousTurn =
                         (Parser.Token
                             (turnableToString turnable)
                             (ExpectingTurnable
-                                { previousTurnString = Tuple.first previousTurn
-                                , previousTurnStartCol = Tuple.second previousTurn
-                                }
+                                (Maybe.map
+                                    (\{ startIndex, string } ->
+                                        { previousTurnString = string
+                                        , previousTurnstartIndex = startIndex
+                                        }
+                                    )
+                                    (List.head state.turnList)
+                                )
                             )
                         )
             in
@@ -888,10 +907,56 @@ verifyNotEmptyParser : Algorithm -> OurParser Algorithm
 verifyNotEmptyParser (Algorithm turnList) =
     case List.length turnList of
         0 ->
-            Parser.problem EmptyAlgorithmParsingProblem
+            Parser.problem
+                (DirectUserProblem EmptyAlgorithm)
 
         _ ->
             Parser.succeed (Algorithm turnList)
+
+
+errorIfNoTurnsInParentheses :
+    ParserState
+    -> ParenthesisIndex
+    -> Parser.Step ParserState done
+    -> OurParser a
+    -> OurParser (Parser.Step ParserState done)
+errorIfNoTurnsInParentheses state startParenthesisIndex success parser =
+    parser
+        |> andThenWithInputString
+            (\( _, inputString ) ->
+                let
+                    problem =
+                        Parser.problem
+                            (DirectUserProblem <|
+                                EmptyParentheses
+                                    { inputString = inputString
+                                    , errorIndex = toInt startParenthesisIndex
+                                    }
+                            )
+                in
+                case state.turnList |> List.head |> Maybe.map .startIndex of
+                    Nothing ->
+                        problem
+
+                    Just lastTurnstartIndex ->
+                        if lastTurnstartIndex > toInt startParenthesisIndex then
+                            Parser.succeed success
+
+                        else
+                            problem
+            )
+
+
+andThenWithInputString : (( a, String ) -> OurParser b) -> OurParser a -> OurParser b
+andThenWithInputString fn parser =
+    Parser.map Tuple.pair parser
+        |= Parser.getSource
+        |> Parser.andThen fn
+
+
+whitespaceParser : OurParser ()
+whitespaceParser =
+    Parser.chompWhile isWhitespace
 
 
 

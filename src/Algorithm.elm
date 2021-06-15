@@ -748,21 +748,17 @@ buildTurnListLoop state =
         -- Deal with any whitespace between turns or parentheses
         |. whitespaceParser
         |. Parser.oneOf
-            [ Parser.token (Parser.Token "\n" (ExpectingUnwantedString "\n"))
-                |> andThenWithInputStringAndOffset
-                    (\( _, inputString, _ ) ->
-                        Parser.problem <|
-                            UserReadyError (SpansOverSeveralLines inputString)
-                    )
+            [ errorIfTokenEncountered "\n"
+                (\{ string } ->
+                    SpansOverSeveralLines string
+                )
 
             -- \u{000D} is the carriage return character \r but elm format forces it to
             -- this style. see https://github.com/avh4/elm-format/issues/376
-            , Parser.token (Parser.Token "\u{000D}" (ExpectingUnwantedString "\u{000D}"))
-                |> andThenWithInputStringAndOffset
-                    (\( _, inputString, _ ) ->
-                        Parser.problem <|
-                            UserReadyError (SpansOverSeveralLines inputString)
-                    )
+            , errorIfTokenEncountered "\u{000D}"
+                (\{ string } ->
+                    SpansOverSeveralLines string
+                )
 
             -- It will never fail to find an empty string
             , Parser.token (Parser.Token "" WillNeverOccur)
@@ -790,17 +786,13 @@ buildTurnListLoop state =
 
                         -- Error appropriately if we encounter a closing parenthesis when we're not
                         -- inside a set of parentheses
-                        , Parser.token (Parser.Token ")" (ExpectingUnwantedString ")"))
-                            |> andThenWithInputStringAndOffset
-                                (\( _, inputString, offset ) ->
-                                    Parser.problem <|
-                                        UserReadyError
-                                            (UnmatchedClosingParenthesis
-                                                { inputString = inputString
-                                                , errorIndex = offset - 1
-                                                }
-                                            )
-                                )
+                        , errorIfTokenEncountered ")"
+                            (\{ string, tokenStartIndex } ->
+                                UnmatchedClosingParenthesis
+                                    { inputString = string
+                                    , errorIndex = tokenStartIndex
+                                    }
+                            )
                         ]
 
                 -- We're currently inside a set of parentheses
@@ -821,33 +813,58 @@ buildTurnListLoop state =
 
                         -- If no turns, we error informatively if this is the end as
                         -- we are inside a set of parentheses so it shouldn't end yet
-                        , Parser.end ExpectingEnd
-                            |> andThenWithInputStringAndOffset
-                                (\( _, inputString, _ ) ->
-                                    Parser.problem
-                                        (UserReadyError <|
-                                            UnclosedParentheses
-                                                { inputString = inputString
-                                                , openParenthesisIndex = toInt startParenthesisIndex
-                                                }
-                                        )
-                                )
+                        , errorIfEndEncountered
+                            (\{ string } ->
+                                UnclosedParentheses
+                                    { inputString = string
+                                    , openParenthesisIndex = toInt startParenthesisIndex
+                                    }
+                            )
 
                         -- Error appropriately if we see another opening parenthesis inside a set
                         -- of parentheses
-                        , Parser.token (Parser.Token "(" (ExpectingUnwantedString "("))
-                            |> andThenWithInputStringAndOffset
-                                (\( _, inputString, offset ) ->
-                                    Parser.problem <|
-                                        UserReadyError
-                                            (NestedParentheses
-                                                { inputString = inputString
-                                                , errorIndex = offset - 1
-                                                }
-                                            )
-                                )
+                        , errorIfTokenEncountered "("
+                            (\{ string, tokenStartIndex } ->
+                                NestedParentheses
+                                    { inputString = string
+                                    , errorIndex = tokenStartIndex
+                                    }
+                            )
                         ]
            )
+
+
+errorIfTokenEncountered :
+    String
+    -> ({ string : String, tokenStartIndex : Int } -> FromStringError)
+    -> OurParser a
+errorIfTokenEncountered token fn =
+    Parser.token (Parser.Token token (ExpectingUnwantedString token))
+        |> andThenWithInputStringAndOffset
+            (\( _, inputString, offset ) ->
+                Parser.problem <|
+                    UserReadyError <|
+                        fn
+                            { string = inputString
+                            , tokenStartIndex = offset - String.length token
+                            }
+            )
+
+
+errorIfEndEncountered :
+    ({ string : String, tokenStartIndex : Int } -> FromStringError)
+    -> OurParser a
+errorIfEndEncountered fn =
+    Parser.end (ExpectingUnwantedString "")
+        |> andThenWithInputStringAndOffset
+            (\( _, inputString, offset ) ->
+                Parser.problem <|
+                    UserReadyError <|
+                        fn
+                            { string = inputString
+                            , tokenStartIndex = offset
+                            }
+            )
 
 
 parseTurnLoop : ParserState -> OurParser (Parser.Step ParserState a)

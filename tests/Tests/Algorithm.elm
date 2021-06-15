@@ -235,6 +235,9 @@ fromStringTests =
                     |> Expect.equal
                         (Err <|
                             Algorithm.UnclosedParentheses
+                                { inputString = "(U2B'"
+                                , openParenthesisIndex = 0
+                                }
                         )
         , test "Errors on an unmatched closing parenthesis" <|
             \_ ->
@@ -242,6 +245,9 @@ fromStringTests =
                     |> Expect.equal
                         (Err <|
                             Algorithm.UnmatchedClosingParenthesis
+                                { inputString = "U2B)"
+                                , errorIndex = 3
+                                }
                         )
         , test "Errors on starting algorithm with closing parenthesis" <|
             \_ ->
@@ -249,6 +255,9 @@ fromStringTests =
                     |> Expect.equal
                         (Err <|
                             Algorithm.UnmatchedClosingParenthesis
+                                { inputString = ")U2B"
+                                , errorIndex = 0
+                                }
                         )
         , test "Errors on empty parenthesis set" <|
             \_ ->
@@ -256,6 +265,9 @@ fromStringTests =
                     |> Expect.equal
                         (Err <|
                             Algorithm.EmptyParentheses
+                                { inputString = "U2 () B"
+                                , errorIndex = 3
+                                }
                         )
         , test "Errors on empty parenthesis set at start of string" <|
             \_ ->
@@ -263,6 +275,9 @@ fromStringTests =
                     |> Expect.equal
                         (Err <|
                             Algorithm.EmptyParentheses
+                                { inputString = "() U2 B"
+                                , errorIndex = 0
+                                }
                         )
         , test "Errors on nested sets of parentheses" <|
             \_ ->
@@ -270,6 +285,9 @@ fromStringTests =
                     |> Expect.equal
                         (Err <|
                             Algorithm.NestedParentheses
+                                { inputString = "(U2 (B R) B)"
+                                , errorIndex = 4
+                                }
                         )
         , test "Errors as expected on parenthesis breaking up a turn" <|
             \_ ->
@@ -280,6 +298,26 @@ fromStringTests =
                                 { inputString = "U(2')"
                                 , interruptionStart = 1
                                 , interruptionEnd = 2
+                                }
+                        )
+        , test "Errors as expected on incomplete nested parentheses with open" <|
+            \_ ->
+                Algorithm.fromString "(U2 (B R B)"
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.NestedParentheses
+                                { inputString = "(U2 (B R B)"
+                                , errorIndex = 4
+                                }
+                        )
+        , test "Errors as expected on incomplete nested parentheses with close" <|
+            \_ ->
+                Algorithm.fromString "(U2 B) R B)"
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.UnmatchedClosingParenthesis
+                                { inputString = "(U2 B) R B)"
+                                , errorIndex = 10
                                 }
                         )
         , fuzz
@@ -298,10 +336,18 @@ fromStringTests =
             "Errors informatively when encountering unexpected symbol"
           <|
             \invalidSymbol ->
-                Algorithm.fromString ("U" ++ String.fromChar invalidSymbol ++ " B2")
+                let
+                    inputString =
+                        "U" ++ String.fromChar invalidSymbol ++ " B2"
+                in
+                Algorithm.fromString inputString
                     |> Expect.equal
                         (Err <|
-                            Algorithm.InvalidSymbol invalidSymbol
+                            Algorithm.InvalidSymbol
+                                { inputString = inputString
+                                , errorIndex = 1
+                                , symbol = invalidSymbol
+                                }
                         )
         ]
 

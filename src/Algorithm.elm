@@ -411,10 +411,10 @@ unexpectedStringExpected problem =
         RepeatedTurnableParsingProblem _ ->
             False
 
-        UnclosedParenthesesParsingProblem ->
+        UnclosedParenthesesParsingProblem _ ->
             False
 
-        EmptyParenthesesParsingProblem ->
+        EmptyParenthesesParsingProblem _ ->
             False
 
         ExpectingTurnable _ ->
@@ -445,10 +445,10 @@ getRelevantProblem { problem } =
         RepeatedTurnableParsingProblem _ ->
             Just ( problem, 2 )
 
-        UnclosedParenthesesParsingProblem ->
+        UnclosedParenthesesParsingProblem _ ->
             Just ( problem, 2 )
 
-        EmptyParenthesesParsingProblem ->
+        EmptyParenthesesParsingProblem _ ->
             Just ( problem, 2 )
 
         ExpectingOpeningParenthesis ->
@@ -476,11 +476,17 @@ problemToFromStringError { inputString, problem, index, unexpectedString } =
         EmptyAlgorithmParsingProblem ->
             EmptyAlgorithm
 
-        UnclosedParenthesesParsingProblem ->
+        UnclosedParenthesesParsingProblem startParenthesisCol ->
             UnclosedParentheses
+                { inputString = inputString
+                , openParenthesisIndex = startParenthesisCol - 1
+                }
 
-        EmptyParenthesesParsingProblem ->
+        EmptyParenthesesParsingProblem openParenthesisCol ->
             EmptyParentheses
+                { inputString = inputString
+                , errorIndex = openParenthesisCol - 1
+                }
 
         ExpectingTurnable { previousTurnString, previousTurnStartCol } ->
             if
@@ -513,9 +519,15 @@ problemToFromStringError { inputString, problem, index, unexpectedString } =
 
             else if unexpectedString == ")" then
                 UnmatchedClosingParenthesis
+                    { inputString = inputString
+                    , errorIndex = index
+                    }
 
             else if unexpectedString == "(" then
                 NestedParentheses
+                    { inputString = inputString
+                    , errorIndex = index
+                    }
 
             else if
                 wasInvalidTurnLength
@@ -530,9 +542,13 @@ problemToFromStringError { inputString, problem, index, unexpectedString } =
                     }
 
             else if Tuple.first <| wasUnexpectedCharacter unexpectedString then
-                InvalidSymbol <|
-                    Tuple.second <|
-                        wasUnexpectedCharacter unexpectedString
+                InvalidSymbol
+                    { inputString = inputString
+                    , errorIndex = index
+                    , symbol =
+                        Tuple.second <|
+                            wasUnexpectedCharacter unexpectedString
+                    }
 
             else
                 InvalidTurnable
@@ -653,8 +669,8 @@ type ParsingProblem
         }
     | ExpectingOpeningParenthesis
     | ExpectingClosingParenthesis
-    | UnclosedParenthesesParsingProblem
-    | EmptyParenthesesParsingProblem
+    | UnclosedParenthesesParsingProblem Int
+    | EmptyParenthesesParsingProblem Int
     | EmptyAlgorithmParsingProblem
     | ExpectingEnd
     | WillNeverOccur
@@ -721,11 +737,30 @@ buildTurnListLoop state =
                                             (Parser.Loop { state | insideParentheses = Nothing })
 
                                     else
-                                        Parser.problem EmptyParenthesesParsingProblem
+                                        case state.insideParentheses of
+                                            Just startParenthesisCol ->
+                                                Parser.problem
+                                                    (EmptyParenthesesParsingProblem
+                                                        startParenthesisCol
+                                                    )
+
+                                            Nothing ->
+                                                Parser.problem WillNeverOccur
                                 )
                         , parseTurnLoop state
                         , Parser.end ExpectingEnd
-                            |> Parser.andThen (always <| Parser.problem UnclosedParenthesesParsingProblem)
+                            |> Parser.andThen
+                                (always <|
+                                    case state.insideParentheses of
+                                        Just startParenthesisCol ->
+                                            Parser.problem
+                                                (UnclosedParenthesesParsingProblem
+                                                    startParenthesisCol
+                                                )
+
+                                        Nothing ->
+                                            Parser.problem WillNeverOccur
+                                )
                         ]
            )
 

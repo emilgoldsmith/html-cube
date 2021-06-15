@@ -825,33 +825,11 @@ parseTurnLoop state =
                 }
         )
         |= Parser.getOffset
-        |= (Parser.mapChompedString Tuple.pair (turnParser state)
-                |> andThenWithInputString
-                    (\( ( _, Turn turnable _ _ ) as parserResult, inputString ) ->
-                        case
-                            state.turnList
-                                |> List.head
-                                |> Maybe.map (\x -> ( x.turn, x.startIndex, x.string ))
-                        of
-                            Just ( Turn previousTurnable _ _, lastTurnStartIndex, lastTurnString ) ->
-                                if previousTurnable == turnable then
-                                    Parser.problem
-                                        (DirectUserProblem <|
-                                            RepeatedTurnable
-                                                { inputString = inputString
-                                                , errorIndex =
-                                                    lastTurnStartIndex
-                                                        + String.length lastTurnString
-                                                }
-                                        )
-
-                                else
-                                    Parser.succeed parserResult
-
-                            Nothing ->
-                                Parser.succeed parserResult
-                    )
-           )
+        -- Parse turn and also return the string that was parsed
+        |= Parser.mapChompedString Tuple.pair
+            (turnParser state
+                |> errorIfRepeatedTurnables state
+            )
 
 
 turnParser : ParserState -> OurParser Turn
@@ -950,6 +928,35 @@ errorIfNoTurnsInParentheses state startParenthesisIndex parser =
                         else
                             problem
             )
+
+
+errorIfRepeatedTurnables : ParserState -> OurParser Turn -> OurParser Turn
+errorIfRepeatedTurnables state =
+    andThenWithInputString
+        (\( (Turn turnable _ _) as previousResult, inputString ) ->
+            case
+                state.turnList
+                    |> List.head
+                    |> Maybe.map (\x -> ( x.turn, x.startIndex, x.string ))
+            of
+                Just ( Turn previousTurnable _ _, lastTurnStartIndex, lastTurnString ) ->
+                    if previousTurnable == turnable then
+                        Parser.problem
+                            (DirectUserProblem <|
+                                RepeatedTurnable
+                                    { inputString = inputString
+                                    , errorIndex =
+                                        lastTurnStartIndex
+                                            + String.length lastTurnString
+                                    }
+                            )
+
+                    else
+                        Parser.succeed previousResult
+
+                Nothing ->
+                    Parser.succeed previousResult
+        )
 
 
 andThenWithInputString : (( a, String ) -> OurParser b) -> OurParser a -> OurParser b

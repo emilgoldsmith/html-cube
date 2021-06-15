@@ -489,13 +489,7 @@ problemToFromStringError { inputString, problem, index, unexpectedString } =
             userProblem
 
         ExpectingTurnable Nothing ->
-            if unexpectedString == "(" then
-                NestedParentheses
-                    { inputString = inputString
-                    , errorIndex = index
-                    }
-
-            else if Tuple.first <| wasUnexpectedCharacter unexpectedString then
+            if Tuple.first <| wasUnexpectedCharacter unexpectedString then
                 InvalidSymbol
                     { inputString = inputString
                     , errorIndex = index
@@ -533,12 +527,6 @@ problemToFromStringError { inputString, problem, index, unexpectedString } =
                 InvalidTurnApostropheWrongSideOfLength
                     { inputString = inputString
                     , errorIndex = index - 1
-                    }
-
-            else if unexpectedString == "(" then
-                NestedParentheses
-                    { inputString = inputString
-                    , errorIndex = index
                     }
 
             else if
@@ -843,6 +831,20 @@ buildTurnListLoop state =
                                                 , openParenthesisIndex = toInt startParenthesisIndex
                                                 }
                                         )
+                                )
+
+                        -- Error appropriately if we see another opening parenthesis inside a set
+                        -- of parentheses
+                        , Parser.token (Parser.Token "(" (ExpectingUnwantedString "("))
+                            |> andThenWithInputStringAndOffset
+                                (\( _, inputString, offset ) ->
+                                    Parser.problem <|
+                                        UserReadyError
+                                            (NestedParentheses
+                                                { inputString = inputString
+                                                , errorIndex = offset - 1
+                                                }
+                                            )
                                 )
                         ]
            )

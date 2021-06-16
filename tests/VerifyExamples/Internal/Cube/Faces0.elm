@@ -7,6 +7,7 @@ import Test
 import Expect
 
 import Internal.Cube exposing (..)
+import List.Nonempty
 
 
 
@@ -16,11 +17,11 @@ import Internal.Cube exposing (..)
 
 spec0 : Test.Test
 spec0 =
-    Test.test "#faces: \n\n    List.length faces\n    --> 6" <|
+    Test.test "#faces: \n\n    List.Nonempty.length faces\n    --> 6" <|
         \() ->
             Expect.equal
                 (
-                List.length faces
+                List.Nonempty.length faces
                 )
                 (
                 6

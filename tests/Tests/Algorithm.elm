@@ -7,6 +7,7 @@ to a cube. Enjoy!
 import Algorithm exposing (Algorithm)
 import Expect
 import Fuzz
+import List.Nonempty
 import Test exposing (..)
 
 
@@ -516,7 +517,12 @@ obviouslyInvalidAlgorithmString : Fuzz.Fuzzer String
 obviouslyInvalidAlgorithmString =
     let
         notFaceOrSlice c =
-            not <| List.member c (List.map renderTurnable Algorithm.allTurnables)
+            not <|
+                List.Nonempty.member c
+                    (List.Nonempty.map
+                        renderTurnable
+                        Algorithm.allTurnables
+                    )
 
         removeFaceAndSliceChars =
             String.filter notFaceOrSlice
@@ -600,7 +606,10 @@ renderTurn (Algorithm.Turn x length direction) =
 
 turnableFuzzer : Fuzz.Fuzzer Algorithm.Turnable
 turnableFuzzer =
-    Fuzz.oneOf <| List.map Fuzz.constant Algorithm.allTurnables
+    Algorithm.allTurnables
+        |> List.Nonempty.map Fuzz.constant
+        |> List.Nonempty.toList
+        |> Fuzz.oneOf
 
 
 renderTurnable : Algorithm.Turnable -> Char
@@ -645,7 +654,10 @@ renderTurnable x =
 
 turnLengthFuzzer : Fuzz.Fuzzer Algorithm.TurnLength
 turnLengthFuzzer =
-    Fuzz.oneOf <| List.map Fuzz.constant Algorithm.allTurnLengths
+    Algorithm.allTurnLengths
+        |> List.Nonempty.map Fuzz.constant
+        |> List.Nonempty.toList
+        |> Fuzz.oneOf
 
 
 renderLength : Algorithm.TurnLength -> String
@@ -663,7 +675,10 @@ renderLength length =
 
 turnDirectionFuzzer : Fuzz.Fuzzer Algorithm.TurnDirection
 turnDirectionFuzzer =
-    Fuzz.oneOf <| List.map Fuzz.constant Algorithm.allTurnDirections
+    Algorithm.allTurnDirections
+        |> List.Nonempty.map Fuzz.constant
+        |> List.Nonempty.toList
+        |> Fuzz.oneOf
 
 
 renderDirection : Algorithm.TurnDirection -> String

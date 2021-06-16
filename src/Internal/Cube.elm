@@ -4,6 +4,7 @@ import Algorithm
 import Cube.Advanced.Types exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import List.Nonempty
 import Svg exposing (line, path, svg)
 import Svg.Attributes exposing (d, fill, stroke, strokeWidth, viewBox, x1, x2, y1, y2)
 import Utils.Enumerator
@@ -1289,10 +1290,12 @@ getColor face =
 
 {-| All possible faces
 
-    List.length faces --> 6
+    import List.Nonempty
+
+    List.Nonempty.length faces --> 6
 
 -}
-faces : List Face
+faces : List.Nonempty.Nonempty Face
 faces =
     let
         fromU face =
@@ -1320,10 +1323,12 @@ faces =
 
 {-| All possible corner locations
 
-    List.length cornerLocations --> 8
+    import List.Nonempty
+
+    List.Nonempty.length cornerLocations --> 8
 
 -}
-cornerLocations : List CornerLocation
+cornerLocations : List.Nonempty.Nonempty CornerLocation
 cornerLocations =
     let
         fromUFL location =
@@ -1357,10 +1362,12 @@ cornerLocations =
 
 {-| All possible edge locations
 
-    List.length edgeLocations --> 12
+    import List.Nonempty
+
+    List.Nonempty.length edgeLocations --> 12
 
 -}
-edgeLocations : List EdgeLocation
+edgeLocations : List.Nonempty.Nonempty EdgeLocation
 edgeLocations =
     let
         fromUF location =
@@ -1406,10 +1413,12 @@ edgeLocations =
 
 {-| All possible center locations
 
-    List.length centerLocations --> 6
+    import List.Nonempty
+
+    List.Nonempty.length centerLocations --> 6
 
 -}
-centerLocations : List CenterLocation
+centerLocations : List.Nonempty.Nonempty CenterLocation
 centerLocations =
     let
         fromU location =
@@ -1553,7 +1562,13 @@ getCubeHtml rotation mapText attributes size cube =
             ]
           <|
             List.map (\( a, b, c ) -> displayCubie defaultTheme size b (mapText c) a)
-                (getRenderedCorners rendering ++ getRenderedEdges rendering ++ getRenderedCenters rendering)
+                (getRenderedCorners rendering
+                    |> List.Nonempty.append
+                        (getRenderedEdges rendering)
+                    |> List.Nonempty.append
+                        (getRenderedCenters rendering)
+                    |> List.Nonempty.toList
+                )
         ]
 
 
@@ -1571,7 +1586,18 @@ displayCubie theme size { fromFront, fromLeft, fromTop } textOnFaces rendering =
         , style "left" (px <| cubieSideLength size * fromLeft)
         , cssTransformCube [ ZTranslatePixels <| cubieSideLength size * fromFront * -1 ] (cubieSideLength size)
         ]
-        (List.map (\face -> displayCubieFace theme size face (getTextForFace textOnFaces face) rendering) faces)
+        (faces
+            |> List.Nonempty.map
+                (\face ->
+                    displayCubieFace
+                        theme
+                        size
+                        face
+                        (getTextForFace textOnFaces face)
+                        rendering
+                )
+            |> List.Nonempty.toList
+        )
 
 
 displayCubieFace : CubeTheme -> Size -> Face -> Maybe (String -> Html msg) -> CubieRendering -> Html msg
@@ -1791,9 +1817,9 @@ type alias Transformation =
     List SingleTransformation
 
 
-getRenderedCorners : Rendering -> List ( CubieRendering, Coordinates, TextOnFaces msg )
+getRenderedCorners : Rendering -> List.Nonempty.Nonempty ( CubieRendering, Coordinates, TextOnFaces msg )
 getRenderedCorners rendering =
-    List.map (getRenderedCorner rendering) cornerLocations
+    List.Nonempty.map (getRenderedCorner rendering) cornerLocations
 
 
 getRenderedCorner : Rendering -> CornerLocation -> ( CubieRendering, Coordinates, TextOnFaces msg )
@@ -1872,9 +1898,9 @@ noText =
     }
 
 
-getRenderedEdges : Rendering -> List ( CubieRendering, Coordinates, TextOnFaces msg )
+getRenderedEdges : Rendering -> List.Nonempty.Nonempty ( CubieRendering, Coordinates, TextOnFaces msg )
 getRenderedEdges rendering =
-    List.map (getRenderedEdge rendering) edgeLocations
+    List.Nonempty.map (getRenderedEdge rendering) edgeLocations
 
 
 getRenderedEdge : Rendering -> EdgeLocation -> ( CubieRendering, Coordinates, TextOnFaces msg )
@@ -1973,9 +1999,9 @@ getEdgeCoordinates location =
             }
 
 
-getRenderedCenters : Rendering -> List ( CubieRendering, Coordinates, TextOnFaces msg )
+getRenderedCenters : Rendering -> List.Nonempty.Nonempty ( CubieRendering, Coordinates, TextOnFaces msg )
 getRenderedCenters rendering =
-    List.map (getRenderedCenter rendering) centerLocations
+    List.Nonempty.map (getRenderedCenter rendering) centerLocations
 
 
 getRenderedCenter : Rendering -> CenterLocation -> ( CubieRendering, Coordinates, TextOnFaces msg )

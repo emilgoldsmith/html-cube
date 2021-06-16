@@ -278,288 +278,44 @@ parserErrorToFromStringError :
     -> FromStringError
 parserErrorToFromStringError string deadends =
     let
-        deadendsInfo =
-            parseDeadEnds deadends string
+        userReadyErrors =
+            deadends
+                |> List.map .problem
+                |> List.filterMap
+                    (\problem ->
+                        case problem of
+                            UserReadyError error ->
+                                Just error
+
+                            _ ->
+                                Nothing
+                    )
     in
-    case deadendsInfo of
-        Err error ->
+    case userReadyErrors of
+        [] ->
+            UnexpectedError
+                { inputString = string
+                , errorIndex =
+                    List.head deadends
+                        |> Maybe.map .col
+                        |> Maybe.map (\x -> x - 1)
+                        |> Maybe.withDefault 0
+                , debugInfo = "No user ready errors were found"
+                }
+
+        _ :: _ :: _ ->
+            UnexpectedError
+                { inputString = string
+                , errorIndex =
+                    List.head deadends
+                        |> Maybe.map .col
+                        |> Maybe.map (\x -> x - 1)
+                        |> Maybe.withDefault 0
+                , debugInfo = "Several user ready errors were found"
+                }
+
+        error :: _ ->
             error
-
-        Ok { problem, col, unexpectedString } ->
-            problemToFromStringError
-                { problem = problem
-                , index = col - 1
-                , inputString = string
-                , unexpectedString = unexpectedString
-                }
-
-
-parseDeadEnds :
-    List (Parser.DeadEnd Never ParsingProblem)
-    -> String
-    ->
-        Result
-            FromStringError
-            { problem : ParsingProblem
-            , col : Int
-            , unexpectedString : String
-            }
-parseDeadEnds deadends inputString =
-    let
-        hasWillNeverOccur =
-            List.member WillNeverOccur (List.map .problem deadends)
-
-        erroredOnNonFirstRow =
-            not <|
-                List.isEmpty <|
-                    (List.filter (.row >> (/=) 1) deadends
-                        |> List.map .problem
-                        |> List.filter
-                            (\problem ->
-                                case problem of
-                                    -- We are okay with SpansOverSeveralLines erroring on
-                                    UserReadyError (SpansOverSeveralLines _) ->
-                                        False
-
-                                    _ ->
-                                        True
-                            )
-                    )
-
-        uniqueColValues =
-            List.map .col deadends
-                -- Filter same values
-                |> Set.fromList
-                |> Set.toList
-
-        colResult =
-            case uniqueColValues of
-                [ x ] ->
-                    Ok x
-
-                [] ->
-                    Err "No col values found in deadends"
-
-                _ ->
-                    Err
-                        ("Found several different col values in"
-                            ++ " deadends which we didn't expect"
-                        )
-
-        relevantProblemResult =
-            Result.map Tuple.first <|
-                case List.filterMap getRelevantProblem deadends of
-                    [] ->
-                        Err "No relevant problems were found in deadends"
-
-                    x :: xs ->
-                        List.foldl
-                            (\problem result ->
-                                case result of
-                                    Err err ->
-                                        Err err
-
-                                    Ok y ->
-                                        if Tuple.first y == Tuple.first problem then
-                                            Ok y
-
-                                        else if Tuple.second y > Tuple.second problem then
-                                            Ok y
-
-                                        else if Tuple.second y < Tuple.second problem then
-                                            Ok problem
-
-                                        else
-                                            Err
-                                                ("Several different relevant problems with same"
-                                                    ++ " importance level encountered in deadends unexpectedly"
-                                                )
-                            )
-                            (Ok x)
-                            xs
-    in
-    Result.mapError
-        (\debugInfo ->
-            UnexpectedError
-                { inputString = inputString
-                , errorIndex = Result.withDefault 0 colResult
-                , debugInfo = debugInfo
-                }
-        )
-    <|
-        if hasWillNeverOccur then
-            Err
-                "An error we though would never occur occurred unexpectedly"
-
-        else if erroredOnNonFirstRow then
-            Err
-                ("An error occurred on a non first row unexpectedly when there"
-                    ++ " should only ever be one row parsed"
-                )
-
-        else
-            Result.map2 Tuple.pair
-                colResult
-                relevantProblemResult
-                |> Result.andThen
-                    (\( col, relevantProblem ) ->
-                        let
-                            unexpectedString =
-                                String.slice (col - 1) col inputString
-                        in
-                        if
-                            unexpectedString
-                                == ""
-                                && unexpectedStringExpected relevantProblem
-                        then
-                            Err
-                                ("dead end parser finished without"
-                                    ++ " finding an unexpected string"
-                                )
-
-                        else
-                            Ok
-                                { col = col
-                                , problem = relevantProblem
-                                , unexpectedString = unexpectedString
-                                }
-                    )
-
-
-unexpectedStringExpected : ParsingProblem -> Bool
-unexpectedStringExpected problem =
-    case problem of
-        UserReadyError _ ->
-            False
-
-        ExpectingTurnable ->
-            True
-
-        ExpectingUnwantedString _ ->
-            True
-
-        ExpectingClosingParenthesis ->
-            True
-
-        ExpectingOpeningParenthesis ->
-            True
-
-        WillNeverOccur ->
-            True
-
-        ExpectingEnd ->
-            True
-
-
-getRelevantProblem : Parser.DeadEnd Never ParsingProblem -> Maybe ( ParsingProblem, Int )
-getRelevantProblem { problem } =
-    case problem of
-        UserReadyError _ ->
-            Just ( problem, 3 )
-
-        ExpectingTurnable ->
-            Just ( problem, 1 )
-
-        ExpectingOpeningParenthesis ->
-            Nothing
-
-        ExpectingUnwantedString _ ->
-            Nothing
-
-        ExpectingClosingParenthesis ->
-            Nothing
-
-        ExpectingEnd ->
-            Nothing
-
-        WillNeverOccur ->
-            Nothing
-
-
-problemToFromStringError :
-    { inputString : String
-    , problem : ParsingProblem
-    , index : Int
-    , unexpectedString : String
-    }
-    -> FromStringError
-problemToFromStringError { inputString, problem, index } =
-    case problem of
-        UserReadyError userProblem ->
-            userProblem
-
-        ExpectingTurnable ->
-            UnexpectedError
-                { inputString = inputString
-                , errorIndex = index
-                , debugInfo = "ExpectingTurnable Nothing"
-                }
-
-        ExpectingEnd ->
-            UnexpectedError
-                { inputString = inputString
-                , errorIndex = index
-                , debugInfo = "We Expected UnexpectedEnd Problems To Have Been Filtered Out"
-                }
-
-        ExpectingClosingParenthesis ->
-            UnexpectedError
-                { inputString = inputString
-                , errorIndex = index
-                , debugInfo = "We expected ExpectingClosingParenthesis to be filtered it"
-                }
-
-        ExpectingOpeningParenthesis ->
-            UnexpectedError
-                { inputString = inputString
-                , errorIndex = index
-                , debugInfo = "We expected ExpectingOpeningParenthesis to be filtered it"
-                }
-
-        ExpectingUnwantedString _ ->
-            UnexpectedError
-                { inputString = inputString
-                , errorIndex = index
-                , debugInfo = "We expected ExpectingUnwantedString to be filtered it"
-                }
-
-        WillNeverOccur ->
-            UnexpectedError
-                { inputString = inputString
-                , errorIndex = index
-                , debugInfo = "A problem we never expected to happen happened anyway"
-                }
-
-
-turnWouldHaveWorkedWithoutWhitespace :
-    { previousTurnString : String
-    , unexpectedString : String
-    }
-    -> Bool
-turnWouldHaveWorkedWithoutWhitespace { previousTurnString, unexpectedString } =
-    resultToBool (Parser.run algorithmParser (previousTurnString ++ unexpectedString))
-
-
-turnWouldHaveWorkedWithLengthAndDirectionSwapped :
-    { previousTurnString : String
-    , unexpectedString : String
-    }
-    -> Bool
-turnWouldHaveWorkedWithLengthAndDirectionSwapped { previousTurnString, unexpectedString } =
-    String.right 1 previousTurnString
-        == "'"
-        && resultToBool
-            (Parser.run algorithmParser
-                (String.dropRight 1 previousTurnString
-                    ++ unexpectedString
-                    ++ String.right 1 previousTurnString
-                )
-            )
-
-
-resultToBool : Result a b -> Bool
-resultToBool =
-    Result.map (always True) >> Result.withDefault False
 
 
 
@@ -757,75 +513,6 @@ buildTurnListLoop state =
            )
 
 
-detectInterruptionAsTurnFailIssue : ParserState -> OurParser a
-detectInterruptionAsTurnFailIssue state =
-    case state.turnList of
-        [] ->
-            Parser.problem (ExpectingUnwantedString "")
-
-        previousTurn :: _ ->
-            Parser.succeed String.slice
-                |= Parser.getOffset
-                |= Parser.map ((+) 1) Parser.getOffset
-                |= Parser.getSource
-                |> Parser.andThen
-                    (\nextChar ->
-                        if
-                            resultToBool <|
-                                Parser.run
-                                    (turnParser |. Parser.end ExpectingEnd)
-                                    (previousTurn.string ++ nextChar)
-                        then
-                            alwaysError
-                                (\{ string, tokenStartIndex } ->
-                                    TurnWouldWorkWithoutInterruption
-                                        { inputString = string
-                                        , interruptionStart = previousTurn.startIndex + String.length previousTurn.string
-                                        , interruptionEnd = tokenStartIndex - 1
-                                        }
-                                )
-
-                        else
-                            Parser.problem (ExpectingUnwantedString "")
-                    )
-
-
-detectWrongApostrophePlacementAsTurnFailIssue : ParserState -> OurParser a
-detectWrongApostrophePlacementAsTurnFailIssue state =
-    case state.turnList of
-        [] ->
-            Parser.problem (ExpectingUnwantedString "")
-
-        previousTurn :: _ ->
-            Parser.succeed String.slice
-                |= Parser.getOffset
-                |= Parser.map ((+) 1) Parser.getOffset
-                |= Parser.getSource
-                |> Parser.andThen
-                    (\nextChar ->
-                        if
-                            resultToBool
-                                (Parser.run
-                                    (turnParser |. Parser.end ExpectingEnd)
-                                    (String.dropRight 1 previousTurn.string
-                                        ++ nextChar
-                                        ++ String.right 1 previousTurn.string
-                                    )
-                                )
-                        then
-                            alwaysError
-                                (\{ string, tokenStartIndex } ->
-                                    InvalidTurnApostropheWrongSideOfLength
-                                        { inputString = string
-                                        , errorIndex = tokenStartIndex - 2
-                                        }
-                                )
-
-                        else
-                            Parser.problem (ExpectingUnwantedString "")
-                    )
-
-
 parseTurnLoop : ParserState -> OurParser (Parser.Step ParserState a)
 parseTurnLoop state =
     Parser.succeed
@@ -989,6 +676,75 @@ errorIfRepeatedTurnables state =
         )
 
 
+detectInterruptionAsTurnFailIssue : ParserState -> OurParser a
+detectInterruptionAsTurnFailIssue state =
+    case state.turnList of
+        [] ->
+            Parser.problem (ExpectingUnwantedString "")
+
+        previousTurn :: _ ->
+            Parser.succeed String.slice
+                |= Parser.getOffset
+                |= Parser.map ((+) 1) Parser.getOffset
+                |= Parser.getSource
+                |> Parser.andThen
+                    (\nextChar ->
+                        if
+                            resultToBool <|
+                                Parser.run
+                                    (turnParser |. Parser.end ExpectingEnd)
+                                    (previousTurn.string ++ nextChar)
+                        then
+                            alwaysError
+                                (\{ string, tokenStartIndex } ->
+                                    TurnWouldWorkWithoutInterruption
+                                        { inputString = string
+                                        , interruptionStart = previousTurn.startIndex + String.length previousTurn.string
+                                        , interruptionEnd = tokenStartIndex - 1
+                                        }
+                                )
+
+                        else
+                            Parser.problem (ExpectingUnwantedString "")
+                    )
+
+
+detectWrongApostrophePlacementAsTurnFailIssue : ParserState -> OurParser a
+detectWrongApostrophePlacementAsTurnFailIssue state =
+    case state.turnList of
+        [] ->
+            Parser.problem (ExpectingUnwantedString "")
+
+        previousTurn :: _ ->
+            Parser.succeed String.slice
+                |= Parser.getOffset
+                |= Parser.map ((+) 1) Parser.getOffset
+                |= Parser.getSource
+                |> Parser.andThen
+                    (\nextChar ->
+                        if
+                            resultToBool
+                                (Parser.run
+                                    (turnParser |. Parser.end ExpectingEnd)
+                                    (String.dropRight 1 previousTurn.string
+                                        ++ nextChar
+                                        ++ String.right 1 previousTurn.string
+                                    )
+                                )
+                        then
+                            alwaysError
+                                (\{ string, tokenStartIndex } ->
+                                    InvalidTurnApostropheWrongSideOfLength
+                                        { inputString = string
+                                        , errorIndex = tokenStartIndex - 2
+                                        }
+                                )
+
+                        else
+                            Parser.problem (ExpectingUnwantedString "")
+                    )
+
+
 
 -- PARSER HELPERS
 
@@ -999,6 +755,11 @@ andThenWithInputStringAndOffset fn parser =
         |= Parser.getSource
         |= Parser.getOffset
         |> Parser.andThen fn
+
+
+resultToBool : Result a b -> Bool
+resultToBool =
+    Result.map (always True) >> Result.withDefault False
 
 
 whitespaceParser : OurParser ()

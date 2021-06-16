@@ -84,7 +84,7 @@ fromStringTests =
             "Passes all valid aufs"
           <|
             \length direction ->
-                Algorithm.build [ Algorithm.Turn Algorithm.U length direction ]
+                Algorithm.fromTurnList [ Algorithm.Turn Algorithm.U length direction ]
                     |> Algorithm.toString
                     |> AUF.fromString
                     |> Expect.ok

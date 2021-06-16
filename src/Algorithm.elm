@@ -1,8 +1,43 @@
-module Algorithm exposing (Algorithm, Turn(..), TurnDirection(..), TurnLength(..), Turnable(..), allTurnDirections, allTurnLengths, allTurnables, allTurns, append, appendTo, build, empty, toTurnList, fromString, inverse, toString, FromStringError(..))
+module Algorithm exposing
+    ( Algorithm, Turn(..), Turnable(..), TurnLength(..), TurnDirection(..)
+    , fromTurnList, empty
+    , toString, FromStringError(..), fromString
+    , inverse, append, reverseAppend
+    , allTurns, allTurnables, allTurnLengths, allTurnDirections
+    , toTurnList
+    )
 
-{-| Documentation to come
+{-|
 
-@docs Algorithm, Turn, TurnDirection, TurnLength, Turnable, allTurnDirections, allTurnLengths, allTurnables, allTurns, append, appendTo, build, empty, toTurnList, fromString, inverse, toString, FromStringError
+
+# Definition
+
+@docs Algorithm, Turn, Turnable, TurnLength, TurnDirection
+
+
+# Constructors
+
+@docs fromTurnList, empty
+
+
+# (De)Serialization
+
+@docs toString, FromStringError, fromString
+
+
+# Helpers
+
+@docs inverse, append, reverseAppend
+
+
+# Enumerations
+
+@docs allTurns, allTurnables, allTurnLengths, allTurnDirections
+
+
+# Advanced
+
+@docs toTurnList
 
 -}
 
@@ -12,22 +47,39 @@ import Utils.Enumerator
 
 
 
--- ALGORITHM MODEL
+-- ALGORITHM MODEL / DEFINTION
 
 
-{-| Placeholder
+{-| Any sequence of turns on a 3x3 Rubik's Cube.
+Usually used to describe an
+[algorithm](https://www.speedsolving.com/wiki/index.php/Algorithm)
+used to solve a specific case for speedcubing.
+
+The notation used is based on:
+<https://www.speedsolving.com/wiki/index.php/Notation>
+
+It is meant to be used for speedcubing so it includes
+options such as cube rotations, wide moves and
+three-quarter turns even if those aren't necessary to
+be able to solve the cube, but can be important in
+describing the fastest way to solve a given case for
+a human
+
 -}
 type Algorithm
     = Algorithm (List Turn)
 
 
-{-| Placeholder
+{-| Describes a single turn, which is rotation any turnable
+in a given direction for a given amount of degrees
 -}
 type Turn
     = Turn Turnable TurnLength TurnDirection
 
 
-{-| Placeholder
+{-| Describes anything that can be turned on a Rubik's Cube
+such as a face, a slice, a rotation of the whole cube or
+several slices together also known as a wide move
 -}
 type Turnable
     = -- Single face turns
@@ -47,7 +99,7 @@ type Turnable
     | Z
 
 
-{-| Placeholder
+{-| Describes how much to turn a turnable in a turn
 -}
 type TurnLength
     = OneQuarter
@@ -55,7 +107,7 @@ type TurnLength
     | ThreeQuarters
 
 
-{-| Placeholder
+{-| Describes which direction to turn a turnable in a turn
 -}
 type TurnDirection
     = Clockwise
@@ -63,69 +115,102 @@ type TurnDirection
 
 
 
--- HELPERS
+-- CONSTRUCTORS
 
 
-{-| Placeholder
+{-| Create an Algorithm from a list of turns
+
+    fromTurnList
+        [ Turn U OneQuarter CounterClockwise
+        , Turn B Halfway Clockwise
+        ]
+
 -}
-toTurnList : Algorithm -> List Turn
-toTurnList alg =
-    case alg of
-        Algorithm turnList ->
-            turnList
-
-
-{-| Placeholder
--}
-build : List Turn -> Algorithm
-build =
+fromTurnList : List Turn -> Algorithm
+fromTurnList =
     Algorithm
 
 
-{-| Placeholder
+{-| An empty algorithm
 -}
 empty : Algorithm
 empty =
     Algorithm []
 
 
-{-| We append to the first argument, so a ++ b
--}
-appendTo : Algorithm -> Algorithm -> Algorithm
-appendTo (Algorithm a) (Algorithm b) =
-    Algorithm (a ++ b)
+
+-- HELPERS
 
 
-{-| We append the first argument, so b ++ a
+{-| We append the two arguments, so a ++ b
+
+    Result.map2 append (fromString "U") (fromString "B'")
+    --> fromString "UB'"
+
 -}
 append : Algorithm -> Algorithm -> Algorithm
 append (Algorithm a) (Algorithm b) =
+    Algorithm (a ++ b)
+
+
+{-| We append the two algorithms in reverse, so b ++ a
+
+    Result.map2 reverseAppend (fromString "U") (fromString "B'")
+    --> fromString "B'U"
+
+-}
+reverseAppend : Algorithm -> Algorithm -> Algorithm
+reverseAppend (Algorithm a) (Algorithm b) =
     Algorithm (b ++ a)
 
 
-{-| Placeholder
+{-| Get the inverse of the algorithm.
+
+By definition this means that if one was to
+apply the algorithm followed by its inverse
+one would arrive at the same state one started at.
+
+    Result.map inverse <| fromString "UB'"
+    --> fromString "BU'"
+
 -}
 inverse : Algorithm -> Algorithm
-inverse =
-    let
-        map f (Algorithm turnList) =
-            Algorithm (f turnList)
-
-        flipDirection direction =
-            case direction of
-                Clockwise ->
-                    CounterClockwise
-
-                CounterClockwise ->
-                    Clockwise
-
-        flipTurn (Turn a b direction) =
-            Turn a b (flipDirection direction)
-    in
-    map <| List.reverse >> List.map flipTurn
+inverse algorithm =
+    algorithm
+        |> toTurnList
+        |> List.reverse
+        |> List.map inverseTurn
+        |> fromTurnList
 
 
-{-| Placeholder
+inverseTurn : Turn -> Turn
+inverseTurn (Turn a b direction) =
+    Turn a b (inverseDirection direction)
+
+
+inverseDirection : TurnDirection -> TurnDirection
+inverseDirection direction =
+    case direction of
+        Clockwise ->
+            CounterClockwise
+
+        CounterClockwise ->
+            Clockwise
+
+
+
+-- (DE)SERIALIZATION
+
+
+{-| Display an algorithm in a standard format readable by humans
+
+    fromTurnList
+        [ Turn U Halfway CounterClockwise
+        , Turn F OneQuarter Clockwise
+        ]
+        |> toString
+    --> "U2' F"
+
 -}
 toString : Algorithm -> String
 toString (Algorithm turnList) =
@@ -207,7 +292,63 @@ turnDirectionToString dir =
             "'"
 
 
-{-| Placeholder
+{-| The different descriptions of in which way a string is
+not a valid algorithm string. Note that all these errors
+assume that the string is user input, and so makes some
+opinionated decisions about when and how to error based
+on that.
+
+If you want to programatically create arbitrary algorithms
+you should use constructors such as
+[fromTurnList][#fromTurnList]
+
+For an example of how to handle and display these errors to
+a user on user input, make sure to check out this
+[full user input example](https://github.com/emilgoldsmith/elm-speedcubing/blob/main/examples/src/AlgorithmFromString.elm)
+
+  - **EmptyAlgorithm**: There were no turns in the string and
+    this does not make sense for user input, then just allow the
+    user not to input an algorithm
+  - **InvalidTurnable**: A turnable such as U or x was expected
+    but not found
+  - **InvalidTurnLength**: It seems like a turn length such as 2
+    or 3 was attempted to be specified but wasn't valid
+  - **RepeatedTurnable**: The same turnable was repeated twice in
+    a row which would never make sense in an algorithm. The correct
+    way to describe this is by combining the two into one such as
+    UU becoming U2, or UU' just not being there at all
+  - **TurnWouldWorkWithoutInterruption**: It looks like an otherwise
+    correct turn was specified but a parenthesis, some whitespace
+    or something similar came in the way making it invalid
+  - **ApostropheWrongSideOfLength**: It looks like the apostrophe
+    was put on the wrong side of the length, such as U'2 instead
+    of U2' in an otherwise correct turn, just swapping these
+    would make it valid
+  - **UnclosedParenthesis**: There is an opening parenthesis that
+    was never closed
+  - **UnmatchedClosingParenthesis**: There is a closing parenthesis
+    that doesn't have an opening match
+  - **EmptyParentheses**: There is a set of parentheses that aren't
+    enclosing any turns, which does not make sense as parentheses are
+    used to group turns to help memorization and execution
+  - **NestedParentheses**: A second set of parentheses were started
+    within a set of parentheses. Nested triggers or other nested grouping
+    hasn't seemed to be a relevant need anywhere in the community
+    so it is not allowed until need has been proven
+  - **SpansOverSeveralLines**: An algorithm is not allowed to span over
+    several different lines, the string input should just be a single line
+  - **InvalidSymbol**: A symbol was encountered that does not make any
+    sense in an algorithm anywhere.
+  - **UnexpectedError**: The parsing code behaved in an unexpected way.
+    This should never happen unless we have a bug in our code. If you get
+    this error in production code just either tell the user that the
+    algorithm wasn't valid without any further explanation or tell them
+    something unexpected happen. The debugInfo key is not helpful to show
+    to users, but only for figuring out how to fix the Elm Package to avoid
+    this happening in the future, and logging a
+    [Github Issue](https://github.com/emilgoldsmith/elm-speedcubing/issues/new)
+    with the debugInfo would be very appreciated
+
 -}
 type FromStringError
     = EmptyAlgorithm
@@ -230,11 +371,11 @@ type FromStringError
         , interruptionStart : Int
         , interruptionEnd : Int
         }
-    | InvalidTurnApostropheWrongSideOfLength
+    | ApostropheWrongSideOfLength
         { inputString : String
         , errorIndex : Int
         }
-    | UnclosedParentheses
+    | UnclosedParenthesis
         { inputString : String
         , openParenthesisIndex : Int
         }
@@ -263,7 +404,14 @@ type FromStringError
         }
 
 
-{-| Placeholder
+{-| Parses user input and either returns the algorithm
+described by the string or a detailed error description of
+why it failed
+
+    fromString "" --> Err EmptyAlgorithm
+
+    fromString "U" --> Ok (fromTurnList [Turn U OneQuarter Clockwise])
+
 -}
 fromString : String -> Result FromStringError Algorithm
 fromString string =
@@ -442,7 +590,7 @@ buildTurnListLoop state =
                         -- we are inside a set of parentheses so it shouldn't end yet
                         , errorIfEndEncountered
                             (\{ string } ->
-                                UnclosedParentheses
+                                UnclosedParenthesis
                                     { inputString = string
                                     , openParenthesisIndex = toInt startParenthesisIndex
                                     }
@@ -723,7 +871,7 @@ detectIfApostrophePlacedOnWrongSide state =
                         then
                             alwaysError
                                 (\{ string, tokenStartIndex } ->
-                                    InvalidTurnApostropheWrongSideOfLength
+                                    ApostropheWrongSideOfLength
                                         { inputString = string
                                         , errorIndex = tokenStartIndex - 2
                                         }
@@ -945,3 +1093,19 @@ allTurnDirections =
                     Nothing
     in
     Utils.Enumerator.from Clockwise fromClockwise
+
+
+
+-- ADVANCED
+
+
+{-| You should not need this for by far most use cases.
+
+It will let you introspect the algorithm which can be useful
+in some advanced usecases, but in general you should avoid this
+and just pass around the algorithm type
+
+-}
+toTurnList : Algorithm -> List Turn
+toTurnList (Algorithm turnList) =
+    turnList

@@ -284,7 +284,7 @@ getAlgorithmTests =
                         PLL.referenceAlgorithms
 
                     expectedAlgorithm =
-                        Algorithm.build [ Algorithm.Turn Algorithm.M Algorithm.OneQuarter Algorithm.CounterClockwise ]
+                        Algorithm.fromTurnList [ Algorithm.Turn Algorithm.M Algorithm.OneQuarter Algorithm.CounterClockwise ]
 
                     algorithmSet =
                         { referenceAlgorithms | aa = expectedAlgorithm }
@@ -302,11 +302,11 @@ expectEqualDisregardingAUF expectedRendering alg =
 
         algWithAllAufs =
             aufAlgorithms
-                |> List.Nonempty.map (Algorithm.append alg)
+                |> List.Nonempty.map (Algorithm.reverseAppend alg)
                 |> List.Nonempty.concatMap
                     (\withPreAuf ->
                         List.Nonempty.map
-                            (Algorithm.appendTo withPreAuf)
+                            (Algorithm.append withPreAuf)
                             aufAlgorithms
                     )
 

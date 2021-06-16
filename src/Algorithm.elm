@@ -432,7 +432,7 @@ unexpectedStringExpected problem =
         UserReadyError _ ->
             False
 
-        ExpectingTurnable _ ->
+        ExpectingTurnable ->
             True
 
         ExpectingUnwantedString _ ->
@@ -457,7 +457,7 @@ getRelevantProblem { problem } =
         UserReadyError _ ->
             Just ( problem, 3 )
 
-        ExpectingTurnable _ ->
+        ExpectingTurnable ->
             Just ( problem, 1 )
 
         ExpectingOpeningParenthesis ->
@@ -483,79 +483,17 @@ problemToFromStringError :
     , unexpectedString : String
     }
     -> FromStringError
-problemToFromStringError { inputString, problem, index, unexpectedString } =
+problemToFromStringError { inputString, problem, index } =
     case problem of
         UserReadyError userProblem ->
             userProblem
 
-        ExpectingTurnable Nothing ->
-            if Tuple.first <| wasUnexpectedCharacter unexpectedString then
-                InvalidSymbol
-                    { inputString = inputString
-                    , errorIndex = index
-                    , symbol =
-                        Tuple.second <|
-                            wasUnexpectedCharacter unexpectedString
-                    }
-
-            else
-                InvalidTurnable
-                    { inputString = inputString
-                    , errorIndex = index
-                    , invalidTurnable = String.slice index (index + 1) inputString
-                    }
-
-        ExpectingTurnable (Just { previousTurnString, previousTurnstartIndex }) ->
-            if
-                turnWouldHaveWorkedWithoutWhitespace
-                    { unexpectedString = unexpectedString
-                    , previousTurnString = previousTurnString
-                    }
-            then
-                TurnWouldWorkWithoutInterruption
-                    { inputString = inputString
-                    , interruptionStart = previousTurnstartIndex + String.length previousTurnString
-                    , interruptionEnd = index
-                    }
-
-            else if
-                turnWouldHaveWorkedWithLengthAndDirectionSwapped
-                    { unexpectedString = unexpectedString
-                    , previousTurnString = previousTurnString
-                    }
-            then
-                InvalidTurnApostropheWrongSideOfLength
-                    { inputString = inputString
-                    , errorIndex = index - 1
-                    }
-
-            else if
-                wasInvalidTurnLength
-                    { unexpectedString = unexpectedString
-                    , previousTurnString = previousTurnString
-                    }
-            then
-                InvalidTurnLength
-                    { inputString = inputString
-                    , errorIndex = index
-                    , invalidLength = unexpectedString
-                    }
-
-            else if Tuple.first <| wasUnexpectedCharacter unexpectedString then
-                InvalidSymbol
-                    { inputString = inputString
-                    , errorIndex = index
-                    , symbol =
-                        Tuple.second <|
-                            wasUnexpectedCharacter unexpectedString
-                    }
-
-            else
-                InvalidTurnable
-                    { inputString = inputString
-                    , errorIndex = index
-                    , invalidTurnable = String.slice index (index + 1) inputString
-                    }
+        ExpectingTurnable ->
+            UnexpectedError
+                { inputString = inputString
+                , errorIndex = index
+                , debugInfo = "ExpectingTurnable Nothing"
+                }
 
         ExpectingEnd ->
             UnexpectedError
@@ -619,52 +557,6 @@ turnWouldHaveWorkedWithLengthAndDirectionSwapped { previousTurnString, unexpecte
             )
 
 
-wasInvalidTurnLength :
-    { previousTurnString : String
-    , unexpectedString : String
-    }
-    -> Bool
-wasInvalidTurnLength { previousTurnString, unexpectedString } =
-    -- Check that a turn length was attempted to be specified by
-    -- checking if the unexpected string was an integer
-    maybeToBool
-        (String.toInt unexpectedString)
-        -- If this was so we attempt to see if a valid turn length
-        -- added to what was parsed as the previous turn succeeds.
-        -- If it succeeds we know it was an invalid turn length
-        && resultToBool
-            (Parser.run algorithmParser (previousTurnString ++ "2"))
-
-
-wasUnexpectedCharacter : String -> ( Bool, Char )
-wasUnexpectedCharacter string =
-    case String.uncons string of
-        Nothing ->
-            ( False, ' ' )
-
-        Just ( char, _ ) ->
-            if
-                Char.isAlphaNum char
-                    || char
-                    == '('
-                    || char
-                    == ')'
-                    || char
-                    == '\''
-                    || resultToBool
-                        (Parser.run algorithmParser (String.fromChar char))
-            then
-                ( False, ' ' )
-
-            else
-                ( True, char )
-
-
-maybeToBool : Maybe a -> Bool
-maybeToBool =
-    Maybe.map (always True) >> Maybe.withDefault False
-
-
 resultToBool : Result a b -> Bool
 resultToBool =
     Result.map (always True) >> Result.withDefault False
@@ -681,11 +573,6 @@ type alias OurParser result =
 type ParsingProblem
     = UserReadyError FromStringError
     | ExpectingTurnable
-        (Maybe
-            { previousTurnString : String
-            , previousTurnstartIndex : Int
-            }
-        )
     | ExpectingOpeningParenthesis
     | ExpectingClosingParenthesis
     | ExpectingEnd
@@ -793,6 +680,24 @@ buildTurnListLoop state =
                                     , errorIndex = tokenStartIndex
                                     }
                             )
+                        , detectInterruptionAsTurnFailIssue state
+                        , detectWrongApostrophePlacementAsTurnFailIssue state
+                        , errorIfChar (\c -> Char.isAlpha c || c == '\'' || c == '2' || c == '3')
+                            (\{ char, string, tokenStartIndex } ->
+                                InvalidTurnable
+                                    { inputString = string
+                                    , errorIndex = tokenStartIndex
+                                    , invalidTurnable = String.fromChar char
+                                    }
+                            )
+                        , errorIfChar (always True)
+                            (\{ char, string, tokenStartIndex } ->
+                                InvalidSymbol
+                                    { inputString = string
+                                    , errorIndex = tokenStartIndex
+                                    , symbol = char
+                                    }
+                            )
                         ]
 
                 -- We're currently inside a set of parentheses
@@ -830,41 +735,95 @@ buildTurnListLoop state =
                                     , errorIndex = tokenStartIndex
                                     }
                             )
+                        , detectInterruptionAsTurnFailIssue state
+                        , detectWrongApostrophePlacementAsTurnFailIssue state
+                        , errorIfChar (\c -> Char.isAlpha c || c == '\'' || c == '2' || c == '3')
+                            (\{ char, string, tokenStartIndex } ->
+                                InvalidTurnable
+                                    { inputString = string
+                                    , errorIndex = tokenStartIndex
+                                    , invalidTurnable = String.fromChar char
+                                    }
+                            )
+                        , errorIfChar (always True)
+                            (\{ char, string, tokenStartIndex } ->
+                                InvalidSymbol
+                                    { inputString = string
+                                    , errorIndex = tokenStartIndex
+                                    , symbol = char
+                                    }
+                            )
                         ]
            )
 
 
-errorIfTokenEncountered :
-    String
-    -> ({ string : String, tokenStartIndex : Int } -> FromStringError)
-    -> OurParser a
-errorIfTokenEncountered token fn =
-    Parser.token (Parser.Token token (ExpectingUnwantedString token))
-        |> andThenWithInputStringAndOffset
-            (\( _, inputString, offset ) ->
-                Parser.problem <|
-                    UserReadyError <|
-                        fn
-                            { string = inputString
-                            , tokenStartIndex = offset - String.length token
-                            }
-            )
+detectInterruptionAsTurnFailIssue : ParserState -> OurParser a
+detectInterruptionAsTurnFailIssue state =
+    case state.turnList of
+        [] ->
+            Parser.problem (ExpectingUnwantedString "")
+
+        previousTurn :: _ ->
+            Parser.succeed String.slice
+                |= Parser.getOffset
+                |= Parser.map ((+) 1) Parser.getOffset
+                |= Parser.getSource
+                |> Parser.andThen
+                    (\nextChar ->
+                        if
+                            resultToBool <|
+                                Parser.run
+                                    (turnParser |. Parser.end ExpectingEnd)
+                                    (previousTurn.string ++ nextChar)
+                        then
+                            alwaysError
+                                (\{ string, tokenStartIndex } ->
+                                    TurnWouldWorkWithoutInterruption
+                                        { inputString = string
+                                        , interruptionStart = previousTurn.startIndex + String.length previousTurn.string
+                                        , interruptionEnd = tokenStartIndex - 1
+                                        }
+                                )
+
+                        else
+                            Parser.problem (ExpectingUnwantedString "")
+                    )
 
 
-errorIfEndEncountered :
-    ({ string : String, tokenStartIndex : Int } -> FromStringError)
-    -> OurParser a
-errorIfEndEncountered fn =
-    Parser.end (ExpectingUnwantedString "")
-        |> andThenWithInputStringAndOffset
-            (\( _, inputString, offset ) ->
-                Parser.problem <|
-                    UserReadyError <|
-                        fn
-                            { string = inputString
-                            , tokenStartIndex = offset
-                            }
-            )
+detectWrongApostrophePlacementAsTurnFailIssue : ParserState -> OurParser a
+detectWrongApostrophePlacementAsTurnFailIssue state =
+    case state.turnList of
+        [] ->
+            Parser.problem (ExpectingUnwantedString "")
+
+        previousTurn :: _ ->
+            Parser.succeed String.slice
+                |= Parser.getOffset
+                |= Parser.map ((+) 1) Parser.getOffset
+                |= Parser.getSource
+                |> Parser.andThen
+                    (\nextChar ->
+                        if
+                            resultToBool
+                                (Parser.run
+                                    (turnParser |. Parser.end ExpectingEnd)
+                                    (String.dropRight 1 previousTurn.string
+                                        ++ nextChar
+                                        ++ String.right 1 previousTurn.string
+                                    )
+                                )
+                        then
+                            alwaysError
+                                (\{ string, tokenStartIndex } ->
+                                    InvalidTurnApostropheWrongSideOfLength
+                                        { inputString = string
+                                        , errorIndex = tokenStartIndex - 2
+                                        }
+                                )
+
+                        else
+                            Parser.problem (ExpectingUnwantedString "")
+                    )
 
 
 parseTurnLoop : ParserState -> OurParser (Parser.Step ParserState a)
@@ -884,21 +843,21 @@ parseTurnLoop state =
         |= Parser.getOffset
         -- Parse turn and also return the string that was parsed
         |= Parser.mapChompedString Tuple.pair
-            (turnParser state
+            (turnParser
                 |> errorIfRepeatedTurnables state
             )
 
 
-turnParser : ParserState -> OurParser Turn
-turnParser state =
+turnParser : OurParser Turn
+turnParser =
     Parser.succeed Turn
-        |= turnableParser state
+        |= turnableParser
         |= turnLengthParser
         |= directionParser
 
 
-turnableParser : ParserState -> OurParser Turnable
-turnableParser state =
+turnableParser : OurParser Turnable
+turnableParser =
     let
         turnableToTokenParser turnable =
             let
@@ -906,16 +865,7 @@ turnableParser state =
                     Parser.token
                         (Parser.Token
                             (turnableToString turnable)
-                            (ExpectingTurnable
-                                (Maybe.map
-                                    (\{ startIndex, string } ->
-                                        { previousTurnString = string
-                                        , previousTurnstartIndex = startIndex
-                                        }
-                                    )
-                                    (List.head state.turnList)
-                                )
-                            )
+                            ExpectingTurnable
                         )
             in
             Parser.map (\_ -> turnable) token
@@ -925,13 +875,32 @@ turnableParser state =
 
 turnLengthParser : OurParser TurnLength
 turnLengthParser =
-    Parser.oneOf
-        -- WillNeverOccur here because we include the empty string which will always
-        -- succeed
-        [ Parser.map (\_ -> Halfway) <| Parser.token (Parser.Token "2" WillNeverOccur)
-        , Parser.map (\_ -> ThreeQuarters) <| Parser.token (Parser.Token "3" WillNeverOccur)
-        , Parser.map (\_ -> OneQuarter) <| Parser.token (Parser.Token "" WillNeverOccur)
-        ]
+    Parser.succeed (\a b c -> ( a, b, c ))
+        |= Parser.getSource
+        |= Parser.getOffset
+        |= Parser.getChompedString
+            (Parser.chompWhile Char.isDigit)
+        |> Parser.andThen
+            (\( inputString, startIndex, intString ) ->
+                case intString of
+                    "" ->
+                        Parser.succeed OneQuarter
+
+                    "2" ->
+                        Parser.succeed Halfway
+
+                    "3" ->
+                        Parser.succeed ThreeQuarters
+
+                    _ ->
+                        Parser.problem <|
+                            UserReadyError <|
+                                InvalidTurnLength
+                                    { inputString = inputString
+                                    , invalidLength = intString
+                                    , errorIndex = startIndex
+                                    }
+            )
 
 
 directionParser : OurParser TurnDirection
@@ -1035,6 +1004,88 @@ andThenWithInputStringAndOffset fn parser =
 whitespaceParser : OurParser ()
 whitespaceParser =
     Parser.chompWhile isWhitespace
+
+
+errorIfTokenEncountered :
+    String
+    -> ({ string : String, tokenStartIndex : Int } -> FromStringError)
+    -> OurParser a
+errorIfTokenEncountered token fn =
+    Parser.token (Parser.Token token (ExpectingUnwantedString token))
+        |> andThenWithInputStringAndOffset
+            (\( _, inputString, offset ) ->
+                Parser.problem <|
+                    UserReadyError <|
+                        fn
+                            { string = inputString
+                            , tokenStartIndex = offset - String.length token
+                            }
+            )
+
+
+errorIfEndEncountered :
+    ({ string : String, tokenStartIndex : Int } -> FromStringError)
+    -> OurParser a
+errorIfEndEncountered fn =
+    Parser.end (ExpectingUnwantedString "")
+        |> andThenWithInputStringAndOffset
+            (\( _, inputString, offset ) ->
+                Parser.problem <|
+                    UserReadyError <|
+                        fn
+                            { string = inputString
+                            , tokenStartIndex = offset
+                            }
+            )
+
+
+errorIfChar :
+    (Char -> Bool)
+    -> ({ char : Char, string : String, tokenStartIndex : Int } -> FromStringError)
+    -> OurParser a
+errorIfChar condition fn =
+    (Parser.getChompedString <|
+        Parser.chompIf condition (ExpectingUnwantedString "")
+    )
+        |> andThenWithInputStringAndOffset
+            (\( charString, inputString, offset ) ->
+                case String.toList charString of
+                    [ char ] ->
+                        Parser.problem <|
+                            UserReadyError <|
+                                fn
+                                    { char = char
+                                    , string = inputString
+                                    , tokenStartIndex = offset - 1
+                                    }
+
+                    _ ->
+                        -- Getting chomped string for chompIf should always
+                        -- be a single string
+                        Parser.problem WillNeverOccur
+            )
+
+
+alwaysError :
+    ({ string : String, tokenStartIndex : Int } -> FromStringError)
+    -> OurParser a
+alwaysError fn =
+    Parser.succeed Tuple.pair
+        -- This is what ensures no other options in a Parser.oneOf
+        -- will run, as it stops looking as soon as one option has
+        -- chomped a character
+        |. Parser.chompIf (always True) (ExpectingUnwantedString "")
+        |= Parser.getSource
+        |= Parser.getOffset
+        |> Parser.andThen
+            (\( inputString, offset ) ->
+                Parser.problem <|
+                    UserReadyError <|
+                        fn
+                            { string = inputString
+                            , tokenStartIndex = offset
+                            }
+            )
 
 
 

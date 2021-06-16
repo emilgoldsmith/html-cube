@@ -147,10 +147,10 @@ fromStringTests =
                 Algorithm.fromString "U22'"
                     |> Expect.equal
                         (Err <|
-                            Algorithm.InvalidTurnable
+                            Algorithm.InvalidTurnLength
                                 { inputString = "U22'"
-                                , errorIndex = 2
-                                , invalidTurnable = "2"
+                                , errorIndex = 1
+                                , invalidLength = "22"
                                 }
                         )
         , test "errors on newline between turns" <|
@@ -293,7 +293,7 @@ fromStringTests =
                                 , errorIndex = 4
                                 }
                         )
-        , test "Errors as expected on parenthesis breaking up a turn" <|
+        , test "Errors as expected on opening parenthesis breaking up a turn" <|
             \_ ->
                 Algorithm.fromString "U(2')"
                     |> Expect.equal
@@ -302,6 +302,17 @@ fromStringTests =
                                 { inputString = "U(2')"
                                 , interruptionStart = 1
                                 , interruptionEnd = 2
+                                }
+                        )
+        , test "Errors as expected on closing parenthesis breaking up a turn" <|
+            \_ ->
+                Algorithm.fromString "(U)2"
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.TurnWouldWorkWithoutInterruption
+                                { inputString = "(U)2"
+                                , interruptionStart = 2
+                                , interruptionEnd = 3
                                 }
                         )
         , test "Errors as expected on incomplete nested parentheses with open" <|

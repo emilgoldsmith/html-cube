@@ -9,8 +9,8 @@ jobs:
     name: Lint And Unit Test
     runs-on: ubuntu-20.04
     env:
-      elm_version: 0.19.0
-      elm_test_version: 0.19.0
+      elm_version: 0.19.1
+      elm_test_version: 0.19.1-revision7
       elm_format_version: 0.8.4
       elm_verify_examples_version: 5.0.0
       elm_analyse_version: 0.16.5

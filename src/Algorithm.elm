@@ -8,7 +8,6 @@ module Algorithm exposing (Algorithm, Turn(..), TurnDirection(..), TurnLength(..
 
 import Monads.ListM as ListM
 import Parser.Advanced as Parser exposing ((|.), (|=), Parser)
-import Set
 import Utils.Enumerator
 
 
@@ -375,7 +374,7 @@ algorithmParser =
             , maybeStartParenthesisIndex = Nothing
             }
             buildTurnListLoop
-        |> Parser.andThen verifyNotEmptyParser
+        |> Parser.andThen verifyNotEmpty
 
 
 buildTurnListLoop :
@@ -390,23 +389,8 @@ buildTurnListLoop state =
     Parser.succeed identity
         -- Deal with any whitespace between turns or parentheses
         |. whitespaceParser
-        |. Parser.oneOf
-            [ errorIfTokenEncountered "\n"
-                (\{ string } ->
-                    SpansOverSeveralLines string
-                )
-
-            -- \u{000D} is the carriage return character \r but elm format forces it to
-            -- this style. see https://github.com/avh4/elm-format/issues/376
-            , errorIfTokenEncountered "\u{000D}"
-                (\{ string } ->
-                    SpansOverSeveralLines string
-                )
-
-            -- It will never fail to find an empty string
-            , Parser.token (Parser.Token "" WillNeverOccur)
-            ]
-        |= (case state.maybeStartParenthesisIndex of
+        |= Parser.oneOf
+            [ case state.maybeStartParenthesisIndex of
                 -- We're not currently inside a set of parentheses
                 Nothing ->
                     Parser.oneOf
@@ -434,24 +418,6 @@ buildTurnListLoop state =
                                 UnmatchedClosingParenthesis
                                     { inputString = string
                                     , errorIndex = tokenStartIndex
-                                    }
-                            )
-                        , detectInterruptionAsTurnFailIssue state
-                        , detectWrongApostrophePlacementAsTurnFailIssue state
-                        , errorIfChar (\c -> Char.isAlpha c || c == '\'' || c == '2' || c == '3')
-                            (\{ char, string, tokenStartIndex } ->
-                                InvalidTurnable
-                                    { inputString = string
-                                    , errorIndex = tokenStartIndex
-                                    , invalidTurnable = String.fromChar char
-                                    }
-                            )
-                        , errorIfChar (always True)
-                            (\{ char, string, tokenStartIndex } ->
-                                InvalidSymbol
-                                    { inputString = string
-                                    , errorIndex = tokenStartIndex
-                                    , symbol = char
                                     }
                             )
                         ]
@@ -491,26 +457,9 @@ buildTurnListLoop state =
                                     , errorIndex = tokenStartIndex
                                     }
                             )
-                        , detectInterruptionAsTurnFailIssue state
-                        , detectWrongApostrophePlacementAsTurnFailIssue state
-                        , errorIfChar (\c -> Char.isAlpha c || c == '\'' || c == '2' || c == '3')
-                            (\{ char, string, tokenStartIndex } ->
-                                InvalidTurnable
-                                    { inputString = string
-                                    , errorIndex = tokenStartIndex
-                                    , invalidTurnable = String.fromChar char
-                                    }
-                            )
-                        , errorIfChar (always True)
-                            (\{ char, string, tokenStartIndex } ->
-                                InvalidSymbol
-                                    { inputString = string
-                                    , errorIndex = tokenStartIndex
-                                    , symbol = char
-                                    }
-                            )
                         ]
-           )
+            , classifyError state
+            ]
 
 
 parseTurnLoop : ParserState -> OurParser (Parser.Step ParserState a)
@@ -529,10 +478,10 @@ parseTurnLoop state =
         )
         |= Parser.getOffset
         -- Parse turn and also return the string that was parsed
-        |= Parser.mapChompedString Tuple.pair
-            (turnParser
+        |= (turnParser
                 |> errorIfRepeatedTurnables state
-            )
+                |> Parser.mapChompedString Tuple.pair
+           )
 
 
 turnParser : OurParser Turn
@@ -600,19 +549,59 @@ directionParser =
         ]
 
 
+classifyError : ParserState -> OurParser a
+classifyError state =
+    Parser.oneOf
+        [ errorIfTokenEncountered "\n"
+            (\{ string } ->
+                SpansOverSeveralLines string
+            )
+
+        -- \u{000D} is the carriage return character \r but elm format forces it to
+        -- this style. see https://github.com/avh4/elm-format/issues/376
+        , errorIfTokenEncountered "\u{000D}"
+            (\{ string } ->
+                SpansOverSeveralLines string
+            )
+        , detectIfTurnWasInterrupted state
+        , detectIfApostrophePlacedOnWrongSide state
+
+        -- If it's an alphanumeric character or ' we just log it as
+        -- an invalid turnable as those are the type of characters
+        -- we expect in an algorithm
+        , errorIfChar (\c -> Char.isAlphaNum c || c == '\'')
+            (\{ char, string, tokenStartIndex } ->
+                InvalidTurnable
+                    { inputString = string
+                    , errorIndex = tokenStartIndex
+                    , invalidTurnable = String.fromChar char
+                    }
+            )
+
+        -- If it's any other type of character we error it as an invalid symbol
+        , errorIfChar (always True)
+            (\{ char, string, tokenStartIndex } ->
+                InvalidSymbol
+                    { inputString = string
+                    , errorIndex = tokenStartIndex
+                    , symbol = char
+                    }
+            )
+        ]
+
+
 
 -- PARSER ERROR HANDLING
 
 
-verifyNotEmptyParser : Algorithm -> OurParser Algorithm
-verifyNotEmptyParser (Algorithm turnList) =
-    case List.length turnList of
-        0 ->
-            Parser.problem
-                (UserReadyError EmptyAlgorithm)
+verifyNotEmpty : Algorithm -> OurParser Algorithm
+verifyNotEmpty ((Algorithm turnList) as previousResult) =
+    if List.isEmpty turnList then
+        Parser.problem
+            (UserReadyError EmptyAlgorithm)
 
-        _ ->
-            Parser.succeed (Algorithm turnList)
+    else
+        Parser.succeed previousResult
 
 
 errorIfNoTurnsInParentheses :
@@ -676,8 +665,8 @@ errorIfRepeatedTurnables state =
         )
 
 
-detectInterruptionAsTurnFailIssue : ParserState -> OurParser a
-detectInterruptionAsTurnFailIssue state =
+detectIfTurnWasInterrupted : ParserState -> OurParser a
+detectIfTurnWasInterrupted state =
     case state.turnList of
         [] ->
             Parser.problem (ExpectingUnwantedString "")
@@ -709,8 +698,8 @@ detectInterruptionAsTurnFailIssue state =
                     )
 
 
-detectWrongApostrophePlacementAsTurnFailIssue : ParserState -> OurParser a
-detectWrongApostrophePlacementAsTurnFailIssue state =
+detectIfApostrophePlacedOnWrongSide : ParserState -> OurParser a
+detectIfApostrophePlacedOnWrongSide state =
     case state.turnList of
         [] ->
             Parser.problem (ExpectingUnwantedString "")

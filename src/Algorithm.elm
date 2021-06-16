@@ -1,7 +1,7 @@
 module Algorithm exposing
     ( Algorithm, Turn(..), Turnable(..), TurnLength(..), TurnDirection(..)
     , fromTurnList, empty
-    , toString, FromStringError(..), fromString
+    , toString, fromString, FromStringError(..)
     , inverse, append, reverseAppend
     , allTurns, allTurnables, allTurnLengths, allTurnDirections
     , toTurnList
@@ -22,7 +22,7 @@ module Algorithm exposing
 
 # (De)Serialization
 
-@docs toString, FromStringError, fromString
+@docs toString, fromString, FromStringError
 
 
 # Helpers
@@ -71,7 +71,7 @@ type Algorithm
     = Algorithm (List Turn)
 
 
-{-| Describes a single turn, which is rotation any turnable
+{-| Describes a single turn, which is rotating any turnable
 in a given direction for a given amount of degrees
 -}
 type Turn
@@ -301,45 +301,59 @@ on that.
 
 If you want to programatically create arbitrary algorithms
 you should use constructors such as
-[fromTurnList][#fromTurnList]
+[fromTurnList](#fromTurnList)
 
 For an example of how to handle and display these errors to
 a user on user input, make sure to check out this
 [full user input example](https://github.com/emilgoldsmith/elm-speedcubing/blob/main/examples/src/AlgorithmFromString.elm)
 
   - **EmptyAlgorithm**: There were no turns in the string and
-    this does not make sense for user input, then just allow the
-    user not to input an algorithm
+    this does not make sense for user input.
+
+    If you need behaviour like this just allow the user to not
+    input any algorithm at all
+
   - **InvalidTurnable**: A turnable such as U or x was expected
     but not found
+
   - **InvalidTurnLength**: It seems like a turn length such as 2
     or 3 was attempted to be specified but wasn't valid
+
   - **RepeatedTurnable**: The same turnable was repeated twice in
     a row which would never make sense in an algorithm. The correct
     way to describe this is by combining the two into one such as
     UU becoming U2, or UU' just not being there at all
+
   - **TurnWouldWorkWithoutInterruption**: It looks like an otherwise
     correct turn was specified but a parenthesis, some whitespace
     or something similar came in the way making it invalid
+
   - **ApostropheWrongSideOfLength**: It looks like the apostrophe
     was put on the wrong side of the length, such as U'2 instead
     of U2' in an otherwise correct turn, just swapping these
     would make it valid
+
   - **UnclosedParenthesis**: There is an opening parenthesis that
     was never closed
+
   - **UnmatchedClosingParenthesis**: There is a closing parenthesis
     that doesn't have an opening match
+
   - **EmptyParentheses**: There is a set of parentheses that aren't
     enclosing any turns, which does not make sense as parentheses are
     used to group turns to help memorization and execution
+
   - **NestedParentheses**: A second set of parentheses were started
     within a set of parentheses. Nested triggers or other nested grouping
     hasn't seemed to be a relevant need anywhere in the community
     so it is not allowed until need has been proven
+
   - **SpansOverSeveralLines**: An algorithm is not allowed to span over
     several different lines, the string input should just be a single line
+
   - **InvalidSymbol**: A symbol was encountered that does not make any
     sense in an algorithm anywhere.
+
   - **UnexpectedError**: The parsing code behaved in an unexpected way.
     This should never happen unless we have a bug in our code. If you get
     this error in production code just either tell the user that the
@@ -1051,6 +1065,8 @@ a user, or if you need to select a turn at random
 
     import List.Nonempty
 
+    List.Nonempty.sample allTurns
+
     List.Nonempty.length allTurns
     --> List.Nonempty.length allTurnables
     -->     * List.Nonempty.length allTurnLengths
@@ -1071,7 +1087,12 @@ allTurns =
 
 {-| All possible turnables
 
+Can for example be used if you ever need to list all possible
+turnables to a user, or if you need to select a turnable at random
+
     import List.Nonempty
+
+    List.Nonempty.sample allTurnables
 
     List.Nonempty.length allTurnables --> 12
 
@@ -1122,7 +1143,13 @@ allTurnables =
 
 {-| All possible turn lengths
 
+Can for example be used if you ever need to list all possible
+turn lengths to a user, or if you need to select a turn length
+at random
+
     import List.Nonempty
+
+    List.Nonempty.sample allTurnLengths
 
     List.Nonempty.length allTurnLengths --> 3
 
@@ -1146,7 +1173,13 @@ allTurnLengths =
 
 {-| All possible turn directions
 
+Can for example be used if you ever need to list all possible
+turn directions to a user, or if you need to select a turn
+direction at random
+
     import List.Nonempty
+
+    List.Nonempty.sample allTurnDirections
 
     List.Nonempty.length allTurnDirections --> 2
 

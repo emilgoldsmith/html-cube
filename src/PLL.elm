@@ -437,7 +437,7 @@ correct equivalents to the code below.
 referenceAlgorithms : Algorithms
 referenceAlgorithms =
     { h =
-        Algorithm.build
+        Algorithm.fromTurnList
             [ Algorithm.Turn Algorithm.R Algorithm.Halfway Algorithm.Clockwise
             , Algorithm.Turn Algorithm.U Algorithm.Halfway Algorithm.Clockwise
             , Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.Clockwise
@@ -451,7 +451,7 @@ referenceAlgorithms =
             , Algorithm.Turn Algorithm.R Algorithm.Halfway Algorithm.Clockwise
             ]
     , ua =
-        Algorithm.build
+        Algorithm.fromTurnList
             [ Algorithm.Turn Algorithm.F Algorithm.Halfway Algorithm.Clockwise
             , Algorithm.Turn Algorithm.U Algorithm.OneQuarter Algorithm.CounterClockwise
             , Algorithm.Turn Algorithm.L Algorithm.OneQuarter Algorithm.Clockwise
@@ -463,7 +463,7 @@ referenceAlgorithms =
             , Algorithm.Turn Algorithm.F Algorithm.Halfway Algorithm.Clockwise
             ]
     , ub =
-        Algorithm.build
+        Algorithm.fromTurnList
             [ Algorithm.Turn Algorithm.F Algorithm.Halfway Algorithm.Clockwise
             , Algorithm.Turn Algorithm.U Algorithm.OneQuarter Algorithm.Clockwise
             , Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.CounterClockwise
@@ -475,7 +475,7 @@ referenceAlgorithms =
             , Algorithm.Turn Algorithm.F Algorithm.Halfway Algorithm.Clockwise
             ]
     , z =
-        Algorithm.build
+        Algorithm.fromTurnList
             [ Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.Clockwise
             , Algorithm.Turn Algorithm.B Algorithm.OneQuarter Algorithm.CounterClockwise
             , Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.CounterClockwise
@@ -490,7 +490,7 @@ referenceAlgorithms =
             , Algorithm.Turn Algorithm.F Algorithm.Halfway Algorithm.Clockwise
             ]
     , aa =
-        Algorithm.build
+        Algorithm.fromTurnList
             [ Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.CounterClockwise
             , Algorithm.Turn Algorithm.F Algorithm.OneQuarter Algorithm.Clockwise
             , Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.CounterClockwise
@@ -502,7 +502,7 @@ referenceAlgorithms =
             , Algorithm.Turn Algorithm.R Algorithm.Halfway Algorithm.Clockwise
             ]
     , ab =
-        Algorithm.build
+        Algorithm.fromTurnList
             [ Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.Clockwise
             , Algorithm.Turn Algorithm.B Algorithm.OneQuarter Algorithm.CounterClockwise
             , Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.Clockwise
@@ -514,7 +514,7 @@ referenceAlgorithms =
             , Algorithm.Turn Algorithm.R Algorithm.Halfway Algorithm.Clockwise
             ]
     , e =
-        Algorithm.build
+        Algorithm.fromTurnList
             [ Algorithm.Turn Algorithm.D Algorithm.OneQuarter Algorithm.Clockwise
             , Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.CounterClockwise
             , Algorithm.Turn Algorithm.D Algorithm.Halfway Algorithm.Clockwise
@@ -531,7 +531,7 @@ referenceAlgorithms =
             , Algorithm.Turn Algorithm.F Algorithm.OneQuarter Algorithm.Clockwise
             ]
     , f =
-        Algorithm.build
+        Algorithm.fromTurnList
             [ Algorithm.Turn Algorithm.L Algorithm.OneQuarter Algorithm.Clockwise
             , Algorithm.Turn Algorithm.F Algorithm.OneQuarter Algorithm.Clockwise
             , Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.CounterClockwise
@@ -548,7 +548,7 @@ referenceAlgorithms =
             , Algorithm.Turn Algorithm.F Algorithm.Halfway Algorithm.Clockwise
             ]
     , ga =
-        Algorithm.build
+        Algorithm.fromTurnList
             [ Algorithm.Turn Algorithm.F Algorithm.Halfway Algorithm.CounterClockwise
             , Algorithm.Turn Algorithm.D Algorithm.OneQuarter Algorithm.Clockwise
             , Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.CounterClockwise
@@ -563,7 +563,7 @@ referenceAlgorithms =
             , Algorithm.Turn Algorithm.L Algorithm.OneQuarter Algorithm.Clockwise
             ]
     , gb =
-        Algorithm.build
+        Algorithm.fromTurnList
             [ Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.CounterClockwise
             , Algorithm.Turn Algorithm.U Algorithm.OneQuarter Algorithm.CounterClockwise
             , Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.Clockwise
@@ -578,7 +578,7 @@ referenceAlgorithms =
             , Algorithm.Turn Algorithm.B Algorithm.Halfway Algorithm.Clockwise
             ]
     , gc =
-        Algorithm.build
+        Algorithm.fromTurnList
             [ Algorithm.Turn Algorithm.R Algorithm.Halfway Algorithm.CounterClockwise
             , Algorithm.Turn Algorithm.D Algorithm.OneQuarter Algorithm.CounterClockwise
             , Algorithm.Turn Algorithm.F Algorithm.OneQuarter Algorithm.Clockwise
@@ -593,7 +593,7 @@ referenceAlgorithms =
             , Algorithm.Turn Algorithm.B Algorithm.OneQuarter Algorithm.CounterClockwise
             ]
     , gd =
-        Algorithm.build
+        Algorithm.fromTurnList
             [ Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.Clockwise
             , Algorithm.Turn Algorithm.U Algorithm.OneQuarter Algorithm.Clockwise
             , Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.CounterClockwise
@@ -608,7 +608,7 @@ referenceAlgorithms =
             , Algorithm.Turn Algorithm.F Algorithm.Halfway Algorithm.Clockwise
             ]
     , ja =
-        Algorithm.build
+        Algorithm.fromTurnList
             [ Algorithm.Turn Algorithm.B Algorithm.Halfway Algorithm.Clockwise
             , Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.CounterClockwise
             , Algorithm.Turn Algorithm.U Algorithm.OneQuarter Algorithm.CounterClockwise
@@ -621,7 +621,7 @@ referenceAlgorithms =
             , Algorithm.Turn Algorithm.L Algorithm.Halfway Algorithm.Clockwise
             ]
     , jb =
-        Algorithm.build
+        Algorithm.fromTurnList
             [ Algorithm.Turn Algorithm.B Algorithm.Halfway Algorithm.Clockwise
             , Algorithm.Turn Algorithm.L Algorithm.OneQuarter Algorithm.Clockwise
             , Algorithm.Turn Algorithm.U Algorithm.OneQuarter Algorithm.Clockwise
@@ -634,7 +634,7 @@ referenceAlgorithms =
             , Algorithm.Turn Algorithm.R Algorithm.Halfway Algorithm.Clockwise
             ]
     , na =
-        Algorithm.build
+        Algorithm.fromTurnList
             [ Algorithm.Turn Algorithm.L Algorithm.OneQuarter Algorithm.Clockwise
             , Algorithm.Turn Algorithm.U Algorithm.OneQuarter Algorithm.CounterClockwise
             , Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.Clockwise
@@ -651,7 +651,7 @@ referenceAlgorithms =
             , Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.CounterClockwise
             ]
     , nb =
-        Algorithm.build
+        Algorithm.fromTurnList
             [ Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.CounterClockwise
             , Algorithm.Turn Algorithm.U Algorithm.OneQuarter Algorithm.Clockwise
             , Algorithm.Turn Algorithm.L Algorithm.OneQuarter Algorithm.CounterClockwise
@@ -668,7 +668,7 @@ referenceAlgorithms =
             , Algorithm.Turn Algorithm.L Algorithm.OneQuarter Algorithm.Clockwise
             ]
     , ra =
-        Algorithm.build
+        Algorithm.fromTurnList
             [ Algorithm.Turn Algorithm.F Algorithm.Halfway Algorithm.Clockwise
             , Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.CounterClockwise
             , Algorithm.Turn Algorithm.F Algorithm.OneQuarter Algorithm.CounterClockwise
@@ -684,7 +684,7 @@ referenceAlgorithms =
             , Algorithm.Turn Algorithm.F Algorithm.OneQuarter Algorithm.CounterClockwise
             ]
     , rb =
-        Algorithm.build
+        Algorithm.fromTurnList
             [ Algorithm.Turn Algorithm.R Algorithm.Halfway Algorithm.Clockwise
             , Algorithm.Turn Algorithm.F Algorithm.OneQuarter Algorithm.Clockwise
             , Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.Clockwise
@@ -700,7 +700,7 @@ referenceAlgorithms =
             , Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.Clockwise
             ]
     , t =
-        Algorithm.build
+        Algorithm.fromTurnList
             [ Algorithm.Turn Algorithm.F Algorithm.Halfway Algorithm.Clockwise
             , Algorithm.Turn Algorithm.D Algorithm.OneQuarter Algorithm.Clockwise
             , Algorithm.Turn Algorithm.R Algorithm.Halfway Algorithm.Clockwise
@@ -713,7 +713,7 @@ referenceAlgorithms =
             , Algorithm.Turn Algorithm.L Algorithm.Halfway Algorithm.Clockwise
             ]
     , v =
-        Algorithm.build
+        Algorithm.fromTurnList
             [ Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.CounterClockwise
             , Algorithm.Turn Algorithm.U Algorithm.OneQuarter Algorithm.Clockwise
             , Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.CounterClockwise
@@ -730,7 +730,7 @@ referenceAlgorithms =
             , Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.Clockwise
             ]
     , y =
-        Algorithm.build
+        Algorithm.fromTurnList
             [ Algorithm.Turn Algorithm.F Algorithm.Halfway Algorithm.Clockwise
             , Algorithm.Turn Algorithm.D Algorithm.OneQuarter Algorithm.Clockwise
             , Algorithm.Turn Algorithm.R Algorithm.Halfway Algorithm.Clockwise

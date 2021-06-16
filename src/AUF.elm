@@ -103,7 +103,7 @@ all =
     import Algorithm
 
     toAlgorithm Halfway
-    -->  Algorithm.build
+    -->  Algorithm.fromTurnList
     -->    [ Algorithm.Turn
     -->        Algorithm.U
     -->        Algorithm.Halfway
@@ -118,7 +118,7 @@ toAlgorithm auf =
             Algorithm.empty
 
         Clockwise ->
-            Algorithm.build
+            Algorithm.fromTurnList
                 [ Algorithm.Turn
                     Algorithm.U
                     Algorithm.OneQuarter
@@ -126,7 +126,7 @@ toAlgorithm auf =
                 ]
 
         Halfway ->
-            Algorithm.build
+            Algorithm.fromTurnList
                 [ Algorithm.Turn
                     Algorithm.U
                     Algorithm.Halfway
@@ -134,7 +134,7 @@ toAlgorithm auf =
                 ]
 
         CounterClockwise ->
-            Algorithm.build
+            Algorithm.fromTurnList
                 [ Algorithm.Turn
                     Algorithm.U
                     Algorithm.OneQuarter

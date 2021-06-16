@@ -3,7 +3,7 @@ module Tests.Cube exposing (applyAlgorithmTests, testHelperTests)
 import Algorithm
 import Cube
 import Cube.Advanced
-import Cube.Advanced.Types as CubeTypes exposing (Color(..))
+import Cube.Advanced.Types exposing (Color(..))
 import Expect
 import Expect.Extra
 import Fuzz
@@ -26,13 +26,13 @@ applyAlgorithmTests =
         , fuzz2 cubeFuzzer turnFuzzer "Applying a single move is not an identity operation" <|
             \cube turn ->
                 cube
-                    |> Cube.applyAlgorithm (Algorithm.build << List.singleton <| turn)
+                    |> Cube.applyAlgorithm (Algorithm.fromTurnList << List.singleton <| turn)
                     |> Expect.notEqual cube
         , fuzz3 cubeFuzzer algorithmFuzzer algorithmFuzzer "is associative, so applying combined or separated algs to cube should result in same cube" <|
             \cube alg1 alg2 ->
                 let
                     appliedTogether =
-                        cube |> Cube.applyAlgorithm (Algorithm.appendTo alg1 alg2)
+                        cube |> Cube.applyAlgorithm (Algorithm.append alg1 alg2)
 
                     appliedSeparately =
                         cube |> Cube.applyAlgorithm alg1 |> Cube.applyAlgorithm alg2
@@ -40,12 +40,12 @@ applyAlgorithmTests =
                 appliedTogether |> Expect.equal appliedSeparately
         , fuzz2 commutativePairsFuzzer cubeFuzzer "parallel turns are commutative" <|
             \( turn1, turn2 ) cube ->
-                Cube.applyAlgorithm (Algorithm.build [ turn1, turn2 ]) cube
-                    |> Expect.equal (Cube.applyAlgorithm (Algorithm.build [ turn2, turn1 ]) cube)
+                Cube.applyAlgorithm (Algorithm.fromTurnList [ turn1, turn2 ]) cube
+                    |> Expect.equal (Cube.applyAlgorithm (Algorithm.fromTurnList [ turn2, turn1 ]) cube)
         , fuzz2 nonCommutativePairsFuzzer cubeFuzzer "non parallel turns are not commutative" <|
             \( turn1, turn2 ) cube ->
-                Cube.applyAlgorithm (Algorithm.build [ turn1, turn2 ]) cube
-                    |> Expect.notEqual (Cube.applyAlgorithm (Algorithm.build [ turn2, turn1 ]) cube)
+                Cube.applyAlgorithm (Algorithm.fromTurnList [ turn1, turn2 ]) cube
+                    |> Expect.notEqual (Cube.applyAlgorithm (Algorithm.fromTurnList [ turn2, turn1 ]) cube)
         , fuzz3 cubeFuzzer turnableFuzzer turnDirectionFuzzer "Applying a quarter turn twice equals applying a double turn" <|
             \cube turnable direction ->
                 let
@@ -56,10 +56,10 @@ applyAlgorithmTests =
                         Algorithm.Turn turnable Algorithm.Halfway direction
 
                     afterTwoQuarterTurns =
-                        cube |> Cube.applyAlgorithm (Algorithm.build [ quarterTurn, quarterTurn ])
+                        cube |> Cube.applyAlgorithm (Algorithm.fromTurnList [ quarterTurn, quarterTurn ])
 
                     afterOneHalfway =
-                        cube |> Cube.applyAlgorithm (Algorithm.build [ doubleTurn ])
+                        cube |> Cube.applyAlgorithm (Algorithm.fromTurnList [ doubleTurn ])
                 in
                 afterTwoQuarterTurns |> Expect.equal afterOneHalfway
         , fuzz3 cubeFuzzer turnableFuzzer turnDirectionFuzzer "Applying a quarter turn thrice equals applying a triple turn" <|
@@ -72,10 +72,10 @@ applyAlgorithmTests =
                         Algorithm.Turn turnable Algorithm.ThreeQuarters direction
 
                     afterThreeQuarterTurns =
-                        cube |> Cube.applyAlgorithm (Algorithm.build [ quarterTurn, quarterTurn, quarterTurn ])
+                        cube |> Cube.applyAlgorithm (Algorithm.fromTurnList [ quarterTurn, quarterTurn, quarterTurn ])
 
                     afterOneTripleTurn =
-                        cube |> Cube.applyAlgorithm (Algorithm.build [ tripleTurn ])
+                        cube |> Cube.applyAlgorithm (Algorithm.fromTurnList [ tripleTurn ])
                 in
                 afterThreeQuarterTurns |> Expect.equal afterOneTripleTurn
         , fuzz3 cubeFuzzer turnableFuzzer turnDirectionFuzzer "Applying a quarter turn four times equals doing nothing" <|
@@ -85,7 +85,7 @@ applyAlgorithmTests =
                         Algorithm.Turn turnable Algorithm.OneQuarter direction
 
                     afterFourQuarterTurns =
-                        cube |> Cube.applyAlgorithm (Algorithm.build [ quarterTurn, quarterTurn, quarterTurn, quarterTurn ])
+                        cube |> Cube.applyAlgorithm (Algorithm.fromTurnList [ quarterTurn, quarterTurn, quarterTurn, quarterTurn ])
                 in
                 afterFourQuarterTurns |> Expect.equal cube
         , fuzz2 cubeFuzzer turnFuzzer "Applying a NUM (e.g double, triple) turn in one direction equals applying a (4 - NUM) turn in the opposite direction" <|
@@ -111,10 +111,10 @@ applyAlgorithmTests =
                                 Algorithm.OneQuarter
 
                     turnAlg =
-                        Algorithm.build << List.singleton <| turn
+                        Algorithm.fromTurnList << List.singleton <| turn
 
                     oppositeDirectionEquivalent =
-                        Algorithm.build << List.singleton <| Algorithm.Turn turnable (flipLength length) (flipDirection direction)
+                        Algorithm.fromTurnList << List.singleton <| Algorithm.Turn turnable (flipLength length) (flipDirection direction)
                 in
                 cube |> Cube.applyAlgorithm turnAlg |> Expect.equal (Cube.applyAlgorithm oppositeDirectionEquivalent cube)
         , test "solved cube has correct colors" <|
@@ -126,7 +126,7 @@ applyAlgorithmTests =
             \_ ->
                 let
                     alg =
-                        Algorithm.build [ Algorithm.Turn Algorithm.U Algorithm.OneQuarter Algorithm.Clockwise ]
+                        Algorithm.fromTurnList [ Algorithm.Turn Algorithm.U Algorithm.OneQuarter Algorithm.Clockwise ]
 
                     expectedRendering =
                         solvedCubeRendering
@@ -147,7 +147,7 @@ applyAlgorithmTests =
             \_ ->
                 let
                     alg =
-                        Algorithm.build [ Algorithm.Turn Algorithm.D Algorithm.OneQuarter Algorithm.Clockwise ]
+                        Algorithm.fromTurnList [ Algorithm.Turn Algorithm.D Algorithm.OneQuarter Algorithm.Clockwise ]
 
                     expectedRendering =
                         solvedCubeRendering
@@ -168,7 +168,7 @@ applyAlgorithmTests =
             \_ ->
                 let
                     alg =
-                        Algorithm.build [ Algorithm.Turn Algorithm.L Algorithm.OneQuarter Algorithm.Clockwise ]
+                        Algorithm.fromTurnList [ Algorithm.Turn Algorithm.L Algorithm.OneQuarter Algorithm.Clockwise ]
 
                     expectedRendering =
                         solvedCubeRendering
@@ -189,7 +189,7 @@ applyAlgorithmTests =
             \_ ->
                 let
                     alg =
-                        Algorithm.build [ Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.Clockwise ]
+                        Algorithm.fromTurnList [ Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.Clockwise ]
 
                     expectedRendering =
                         solvedCubeRendering
@@ -210,7 +210,7 @@ applyAlgorithmTests =
             \_ ->
                 let
                     alg =
-                        Algorithm.build [ Algorithm.Turn Algorithm.F Algorithm.OneQuarter Algorithm.Clockwise ]
+                        Algorithm.fromTurnList [ Algorithm.Turn Algorithm.F Algorithm.OneQuarter Algorithm.Clockwise ]
 
                     expectedRendering =
                         solvedCubeRendering
@@ -231,7 +231,7 @@ applyAlgorithmTests =
             \_ ->
                 let
                     alg =
-                        Algorithm.build [ Algorithm.Turn Algorithm.B Algorithm.OneQuarter Algorithm.Clockwise ]
+                        Algorithm.fromTurnList [ Algorithm.Turn Algorithm.B Algorithm.OneQuarter Algorithm.Clockwise ]
 
                     expectedRendering =
                         solvedCubeRendering
@@ -252,7 +252,7 @@ applyAlgorithmTests =
             \_ ->
                 let
                     alg =
-                        Algorithm.build [ Algorithm.Turn Algorithm.M Algorithm.OneQuarter Algorithm.Clockwise ]
+                        Algorithm.fromTurnList [ Algorithm.Turn Algorithm.M Algorithm.OneQuarter Algorithm.Clockwise ]
 
                     expectedRendering =
                         solvedCubeRendering
@@ -273,7 +273,7 @@ applyAlgorithmTests =
             \_ ->
                 let
                     alg =
-                        Algorithm.build [ Algorithm.Turn Algorithm.S Algorithm.OneQuarter Algorithm.Clockwise ]
+                        Algorithm.fromTurnList [ Algorithm.Turn Algorithm.S Algorithm.OneQuarter Algorithm.Clockwise ]
 
                     expectedRendering =
                         solvedCubeRendering
@@ -294,7 +294,7 @@ applyAlgorithmTests =
             \_ ->
                 let
                     alg =
-                        Algorithm.build [ Algorithm.Turn Algorithm.E Algorithm.OneQuarter Algorithm.Clockwise ]
+                        Algorithm.fromTurnList [ Algorithm.Turn Algorithm.E Algorithm.OneQuarter Algorithm.Clockwise ]
 
                     expectedRendering =
                         solvedCubeRendering
@@ -315,7 +315,7 @@ applyAlgorithmTests =
             \_ ->
                 let
                     alg =
-                        Algorithm.build [ Algorithm.Turn Algorithm.X Algorithm.OneQuarter Algorithm.Clockwise ]
+                        Algorithm.fromTurnList [ Algorithm.Turn Algorithm.X Algorithm.OneQuarter Algorithm.Clockwise ]
 
                     -- The faces do the following transformation: U -> B -> D -> F -> U
                     expectedRendering =
@@ -366,7 +366,7 @@ applyAlgorithmTests =
             \_ ->
                 let
                     alg =
-                        Algorithm.build [ Algorithm.Turn Algorithm.Y Algorithm.OneQuarter Algorithm.Clockwise ]
+                        Algorithm.fromTurnList [ Algorithm.Turn Algorithm.Y Algorithm.OneQuarter Algorithm.Clockwise ]
 
                     -- The faces do the following transformation: F -> L -> B -> R -> F
                     expectedRendering =
@@ -417,7 +417,7 @@ applyAlgorithmTests =
             \_ ->
                 let
                     alg =
-                        Algorithm.build [ Algorithm.Turn Algorithm.Z Algorithm.OneQuarter Algorithm.Clockwise ]
+                        Algorithm.fromTurnList [ Algorithm.Turn Algorithm.Z Algorithm.OneQuarter Algorithm.Clockwise ]
 
                     -- The faces do the following transformation: U -> R -> D -> L -> U
                     expectedRendering =

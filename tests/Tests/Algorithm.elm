@@ -26,7 +26,7 @@ fromStringTests =
                 Algorithm.fromString "U B  U\tB   U  \t B    \t    U"
                     |> Expect.equal
                         (Ok <|
-                            Algorithm.build <|
+                            Algorithm.fromTurnList <|
                                 (List.repeat 4 (Algorithm.Turn Algorithm.U Algorithm.OneQuarter Algorithm.Clockwise)
                                     |> List.intersperse (Algorithm.Turn Algorithm.B Algorithm.OneQuarter Algorithm.Clockwise)
                                 )
@@ -40,7 +40,7 @@ fromStringTests =
                 Algorithm.fromString "RU2B'"
                     |> Expect.equal
                         (Ok <|
-                            Algorithm.build
+                            Algorithm.fromTurnList
                                 [ Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.Clockwise
                                 , Algorithm.Turn Algorithm.U Algorithm.Halfway Algorithm.Clockwise
                                 , Algorithm.Turn Algorithm.B Algorithm.OneQuarter Algorithm.CounterClockwise
@@ -51,7 +51,7 @@ fromStringTests =
                 Algorithm.fromString "(U) B (U B)"
                     |> Expect.equal
                         (Ok <|
-                            Algorithm.build
+                            Algorithm.fromTurnList
                                 [ Algorithm.Turn Algorithm.U Algorithm.OneQuarter Algorithm.Clockwise
                                 , Algorithm.Turn Algorithm.B Algorithm.OneQuarter Algorithm.Clockwise
                                 , Algorithm.Turn Algorithm.U Algorithm.OneQuarter Algorithm.Clockwise
@@ -137,7 +137,7 @@ fromStringTests =
                 Algorithm.fromString "U'2"
                     |> Expect.equal
                         (Err <|
-                            Algorithm.InvalidTurnApostropheWrongSideOfLength
+                            Algorithm.ApostropheWrongSideOfLength
                                 { inputString = "U'2"
                                 , errorIndex = 1
                                 }
@@ -238,7 +238,7 @@ fromStringTests =
                 Algorithm.fromString "(U2B'"
                     |> Expect.equal
                         (Err <|
-                            Algorithm.UnclosedParentheses
+                            Algorithm.UnclosedParenthesis
                                 { inputString = "(U2B'"
                                 , openParenthesisIndex = 0
                                 }
@@ -378,7 +378,7 @@ toStringTests =
                     |> Expect.equal (Ok algorithm)
         , test "Passes specific case that tries covering all types of turnables, lengths and directions" <|
             \_ ->
-                Algorithm.build
+                Algorithm.fromTurnList
                     [ Algorithm.Turn
                         Algorithm.U
                         Algorithm.OneQuarter
@@ -449,19 +449,19 @@ inverseAlgTests =
                     |> Expect.equal alg
         , fuzz2 algorithmFuzzer algorithmFuzzer "the inverse of an algorithm equals splitting the alg in two, inversing each part and swapping their order" <|
             \part1 part2 ->
-                Algorithm.appendTo (Algorithm.inverse part2) (Algorithm.inverse part1)
-                    |> Expect.equal (Algorithm.inverse (Algorithm.appendTo part1 part2))
+                Algorithm.append (Algorithm.inverse part2) (Algorithm.inverse part1)
+                    |> Expect.equal (Algorithm.inverse (Algorithm.append part1 part2))
         , test "correctly inverses simple example" <|
             \_ ->
                 let
                     alg =
-                        Algorithm.build
+                        Algorithm.fromTurnList
                             [ Algorithm.Turn Algorithm.U Algorithm.OneQuarter Algorithm.Clockwise
                             , Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.CounterClockwise
                             ]
 
                     inversedAlg =
-                        Algorithm.build
+                        Algorithm.fromTurnList
                             [ Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.Clockwise
                             , Algorithm.Turn Algorithm.U Algorithm.OneQuarter Algorithm.CounterClockwise
                             ]
@@ -476,37 +476,37 @@ appendTests =
         [ describe "appendTo"
             [ fuzz2 turnFuzzer turnFuzzer "Appending two algorithms each consisting of a turn equals an algorithm with those two turns in a row" <|
                 \turn1 turn2 ->
-                    Algorithm.appendTo (Algorithm.build [ turn1 ]) (Algorithm.build [ turn2 ])
-                        |> Expect.equal (Algorithm.build [ turn1, turn2 ])
+                    Algorithm.append (Algorithm.fromTurnList [ turn1 ]) (Algorithm.fromTurnList [ turn2 ])
+                        |> Expect.equal (Algorithm.fromTurnList [ turn1, turn2 ])
             , fuzz algorithmFuzzer "Appending to an empty algorithm equals the second algorithm" <|
-                \algorithm ->
-                    Algorithm.appendTo Algorithm.empty algorithm
-                        |> Expect.equal algorithm
-            , fuzz algorithmFuzzer "Appending an empty algorithm to an algorithm equals the first algorithm" <|
-                \algorithm ->
-                    Algorithm.appendTo algorithm Algorithm.empty
-                        |> Expect.equal algorithm
-            , test "Appending two empty algorithm equals an empty algorithm" <|
-                \_ ->
-                    Algorithm.appendTo Algorithm.empty Algorithm.empty
-                        |> Expect.equal Algorithm.empty
-            ]
-        , describe "append"
-            [ fuzz2 algorithmFuzzer algorithmFuzzer "is the opposite of appendTo" <|
-                \alg1 alg2 ->
-                    Algorithm.append alg1 alg2
-                        |> Expect.equal (Algorithm.appendTo alg2 alg1)
-            , fuzz algorithmFuzzer "Appending an empty algorithm equals the second algorithm" <|
                 \algorithm ->
                     Algorithm.append Algorithm.empty algorithm
                         |> Expect.equal algorithm
-            , fuzz algorithmFuzzer "Appending an algorithm to an empty algorithm equals the first algorithm" <|
+            , fuzz algorithmFuzzer "Appending an empty algorithm to an algorithm equals the first algorithm" <|
                 \algorithm ->
                     Algorithm.append algorithm Algorithm.empty
                         |> Expect.equal algorithm
             , test "Appending two empty algorithm equals an empty algorithm" <|
                 \_ ->
                     Algorithm.append Algorithm.empty Algorithm.empty
+                        |> Expect.equal Algorithm.empty
+            ]
+        , describe "append"
+            [ fuzz2 algorithmFuzzer algorithmFuzzer "is the opposite of appendTo" <|
+                \alg1 alg2 ->
+                    Algorithm.reverseAppend alg1 alg2
+                        |> Expect.equal (Algorithm.append alg2 alg1)
+            , fuzz algorithmFuzzer "Appending an empty algorithm equals the second algorithm" <|
+                \algorithm ->
+                    Algorithm.reverseAppend Algorithm.empty algorithm
+                        |> Expect.equal algorithm
+            , fuzz algorithmFuzzer "Appending an algorithm to an empty algorithm equals the first algorithm" <|
+                \algorithm ->
+                    Algorithm.reverseAppend algorithm Algorithm.empty
+                        |> Expect.equal algorithm
+            , test "Appending two empty algorithm equals an empty algorithm" <|
+                \_ ->
+                    Algorithm.reverseAppend Algorithm.empty Algorithm.empty
                         |> Expect.equal Algorithm.empty
             ]
         ]
@@ -551,7 +551,7 @@ fromStringValidAlgorithmFuzzer =
                     )
                     []
                 |> List.reverse
-                |> Algorithm.build
+                |> Algorithm.fromTurnList
         )
         algorithmFuzzer
 
@@ -562,7 +562,7 @@ algorithmFuzzer =
         nonEmptyTurnList =
             Fuzz.map2 (::) turnFuzzer <| Fuzz.list turnFuzzer
     in
-    Fuzz.map Algorithm.build nonEmptyTurnList
+    Fuzz.map Algorithm.fromTurnList nonEmptyTurnList
 
 
 renderAlgorithm : Algorithm -> String -> String

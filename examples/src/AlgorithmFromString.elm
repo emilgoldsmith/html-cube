@@ -162,7 +162,7 @@ viewError error =
                     ]
                 ]
 
-        Algorithm.InvalidTurnApostropheWrongSideOfLength { inputString, errorIndex } ->
+        Algorithm.ApostropheWrongSideOfLength { inputString, errorIndex } ->
             div []
                 [ div []
                     [ text
@@ -234,7 +234,7 @@ viewError error =
                     ]
                 ]
 
-        Algorithm.UnclosedParentheses { inputString, openParenthesisIndex } ->
+        Algorithm.UnclosedParenthesis { inputString, openParenthesisIndex } ->
             div []
                 [ div []
                     [ text

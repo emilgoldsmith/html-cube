@@ -17,14 +17,14 @@ import Algorithm
 
 spec0 : Test.Test
 spec0 =
-    Test.test "#toAlgorithm: \n\n    toAlgorithm Halfway\n    -->  Algorithm.build\n    -->    [ Algorithm.Turn\n    -->        Algorithm.U\n    -->        Algorithm.Halfway\n    -->        Algorithm.Clockwise\n    -->    ]" <|
+    Test.test "#toAlgorithm: \n\n    toAlgorithm Halfway\n    -->  Algorithm.fromTurnList\n    -->    [ Algorithm.Turn\n    -->        Algorithm.U\n    -->        Algorithm.Halfway\n    -->        Algorithm.Clockwise\n    -->    ]" <|
         \() ->
             Expect.equal
                 (
                 toAlgorithm Halfway
                 )
                 (
-                 Algorithm.build
+                 Algorithm.fromTurnList
                    [ Algorithm.Turn
                        Algorithm.U
                        Algorithm.Halfway

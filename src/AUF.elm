@@ -1,6 +1,6 @@
 module AUF exposing
     ( AUF(..), all
-    , toAlgorithm, toString, FromStringProblem(..), fromString
+    , toAlgorithm, toString, FromStringError(..), fromString
     )
 
 {-| Types and helpers to deal with Adjust U Face (AUF), which
@@ -19,7 +19,7 @@ for more information
 
 # Helpers
 
-@docs toAlgorithm, toString, FromStringProblem, fromString
+@docs toAlgorithm, toString, FromStringError, fromString
 
 -}
 
@@ -155,7 +155,7 @@ and the contained [Algorithm.FromStringError](Algorithm#FromStringError)
 has the problem with the string
 
 -}
-type FromStringProblem
+type FromStringError
     = InvalidAUFAlgorithm
     | AlgorithmParsingProblem Algorithm.FromStringError
 
@@ -170,7 +170,7 @@ type FromStringProblem
     --> Err InvalidAUFAlgorithm
 
 -}
-fromString : String -> Result FromStringProblem AUF
+fromString : String -> Result FromStringError AUF
 fromString stringValue =
     if
         -- Algorithm.fromString doesn't accept empty strings

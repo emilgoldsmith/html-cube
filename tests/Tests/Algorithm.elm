@@ -474,7 +474,7 @@ inverseAlgTests =
 appendTests : Test
 appendTests =
     describe "appenders"
-        [ describe "appendTo"
+        [ describe "append"
             [ fuzz2 turnFuzzer turnFuzzer "Appending two algorithms each consisting of a turn equals an algorithm with those two turns in a row" <|
                 \turn1 turn2 ->
                     Algorithm.append (Algorithm.fromTurnList [ turn1 ]) (Algorithm.fromTurnList [ turn2 ])
@@ -492,8 +492,8 @@ appendTests =
                     Algorithm.append Algorithm.empty Algorithm.empty
                         |> Expect.equal Algorithm.empty
             ]
-        , describe "append"
-            [ fuzz2 algorithmFuzzer algorithmFuzzer "is the opposite of appendTo" <|
+        , describe "reverseAppend"
+            [ fuzz2 algorithmFuzzer algorithmFuzzer "is the opposite of append" <|
                 \alg1 alg2 ->
                     Algorithm.reverseAppend alg1 alg2
                         |> Expect.equal (Algorithm.append alg2 alg1)

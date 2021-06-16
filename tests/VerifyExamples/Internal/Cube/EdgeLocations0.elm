@@ -7,6 +7,7 @@ import Test
 import Expect
 
 import Internal.Cube exposing (..)
+import List.Nonempty
 
 
 
@@ -16,11 +17,11 @@ import Internal.Cube exposing (..)
 
 spec0 : Test.Test
 spec0 =
-    Test.test "#edgeLocations: \n\n    List.length edgeLocations\n    --> 12" <|
+    Test.test "#edgeLocations: \n\n    List.Nonempty.length edgeLocations\n    --> 12" <|
         \() ->
             Expect.equal
                 (
-                List.length edgeLocations
+                List.Nonempty.length edgeLocations
                 )
                 (
                 12

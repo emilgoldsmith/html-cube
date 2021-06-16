@@ -7,6 +7,7 @@ import Test
 import Expect
 
 import Algorithm exposing (..)
+import List.Nonempty
 
 
 
@@ -16,11 +17,11 @@ import Algorithm exposing (..)
 
 spec0 : Test.Test
 spec0 =
-    Test.test "#allTurnDirections: \n\n    List.length allTurnDirections\n    --> 2" <|
+    Test.test "#allTurnDirections: \n\n    List.Nonempty.length allTurnDirections\n    --> 2" <|
         \() ->
             Expect.equal
                 (
-                List.length allTurnDirections
+                List.Nonempty.length allTurnDirections
                 )
                 (
                 2

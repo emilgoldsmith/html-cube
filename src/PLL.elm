@@ -147,14 +147,7 @@ all =
                 Y ->
                     Nothing
     in
-    case Utils.Enumerator.from H fromH of
-        [] ->
-            -- This should not happen, and the length test in examples
-            -- also verifies that it won't
-            List.Nonempty.fromElement H
-
-        x :: xs ->
-            List.Nonempty.Nonempty x xs
+    Utils.Enumerator.from H fromH
 
 
 

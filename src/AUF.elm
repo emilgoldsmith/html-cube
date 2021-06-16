@@ -84,14 +84,7 @@ all =
                 CounterClockwise ->
                     Nothing
     in
-    case Utils.Enumerator.from None fromNone of
-        [] ->
-            -- This should not happen, and the length test in examples
-            -- also verifies that it won't
-            List.Nonempty.fromElement None
-
-        x :: xs ->
-            List.Nonempty.Nonempty x xs
+    Utils.Enumerator.from None fromNone
 
 
 

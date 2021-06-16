@@ -41,6 +41,7 @@ module Algorithm exposing
 
 -}
 
+import List.Nonempty
 import Monads.ListM as ListM
 import Parser.Advanced as Parser exposing ((|.), (|=), Parser)
 import Utils.Enumerator
@@ -479,8 +480,8 @@ type ParsingProblem
     | ExpectingOpeningParenthesis
     | ExpectingClosingParenthesis
     | ExpectingEnd
-    | ExpectingUnwantedString String
-    | WillNeverOccur
+    | CheckingForSpecificErrorType { debugInfo : String }
+    | WillNeverOccur { debugInfo : String }
 
 
 type alias ParserState =
@@ -615,13 +616,13 @@ parseTurnLoop state =
     Parser.succeed
         (\turnStartIndex ( turnString, turn ) ->
             Parser.Loop
-                { turnList =
-                    { turn = turn
-                    , string = turnString
-                    , startIndex = turnStartIndex
-                    }
-                        :: state.turnList
-                , maybeStartParenthesisIndex = state.maybeStartParenthesisIndex
+                { state
+                    | turnList =
+                        { turn = turn
+                        , string = turnString
+                        , startIndex = turnStartIndex
+                        }
+                            :: state.turnList
                 }
         )
         |= Parser.getOffset
@@ -642,19 +643,20 @@ turnParser =
 
 turnableParser : OurParser Turnable
 turnableParser =
-    let
-        turnableToTokenParser turnable =
-            let
-                token =
-                    Parser.token
-                        (Parser.Token
-                            (turnableToString turnable)
-                            ExpectingTurnable
-                        )
-            in
-            Parser.map (\_ -> turnable) token
-    in
-    Parser.oneOf (List.map turnableToTokenParser allTurnables)
+    allTurnables
+        |> List.Nonempty.map turnableToTokenParser
+        |> List.Nonempty.toList
+        |> Parser.oneOf
+
+
+turnableToTokenParser : Turnable -> OurParser Turnable
+turnableToTokenParser turnable =
+    Parser.map (always turnable) <|
+        Parser.token
+            (Parser.Token
+                (turnableToString turnable)
+                ExpectingTurnable
+            )
 
 
 turnLengthParser : OurParser TurnLength
@@ -692,8 +694,10 @@ directionParser =
     Parser.oneOf
         -- WillNeverOccur here because we include the empty string which will always
         -- succeed
-        [ Parser.map (\_ -> CounterClockwise) <| Parser.token (Parser.Token "'" WillNeverOccur)
-        , Parser.map (\_ -> Clockwise) <| Parser.token (Parser.Token "" WillNeverOccur)
+        [ Parser.map (\_ -> CounterClockwise) <|
+            Parser.token (Parser.Token "'" <| WillNeverOccur { debugInfo = "counter clockwise token" })
+        , Parser.map (\_ -> Clockwise) <|
+            Parser.token (Parser.Token "" <| WillNeverOccur { debugInfo = "clockwise token" })
         ]
 
 
@@ -726,7 +730,8 @@ classifyError state =
                     }
             )
 
-        -- If it's any other type of character we error it as an invalid symbol
+        -- If it's any other type of character we error it as an invalid symbol.
+        -- We use this function to get the character as well as opposed to alwaysError
         , errorIfChar (always True)
             (\{ char, string, tokenStartIndex } ->
                 InvalidSymbol
@@ -743,13 +748,13 @@ classifyError state =
 
 
 verifyNotEmpty : Algorithm -> OurParser Algorithm
-verifyNotEmpty ((Algorithm turnList) as previousResult) =
-    if List.isEmpty turnList then
+verifyNotEmpty algorithm =
+    if algorithm == empty then
         Parser.problem
             (UserReadyError EmptyAlgorithm)
 
     else
-        Parser.succeed previousResult
+        Parser.succeed algorithm
 
 
 errorIfNoTurnsInParentheses :
@@ -775,8 +780,8 @@ errorIfNoTurnsInParentheses state startParenthesisIndex parser =
                     Nothing ->
                         problem
 
-                    Just lastTurnstartIndex ->
-                        if lastTurnstartIndex > toInt startParenthesisIndex then
+                    Just lastTurnStartIndex ->
+                        if lastTurnStartIndex >= toInt startParenthesisIndex then
                             Parser.succeed previousValue
 
                         else
@@ -791,6 +796,8 @@ errorIfRepeatedTurnables state =
             case
                 state.turnList
                     |> List.head
+                    -- Change this to a tuple so we can destructure the turn in the
+                    -- below case statement
                     |> Maybe.map (\x -> ( x.turn, x.startIndex, x.string ))
             of
                 Just ( Turn previousTurnable _ _, lastTurnStartIndex, lastTurnString ) ->
@@ -817,7 +824,10 @@ detectIfTurnWasInterrupted : ParserState -> OurParser a
 detectIfTurnWasInterrupted state =
     case state.turnList of
         [] ->
-            Parser.problem (ExpectingUnwantedString "")
+            Parser.problem
+                (CheckingForSpecificErrorType
+                    { debugInfo = "turn interrupted: No previous turns" }
+                )
 
         previousTurn :: _ ->
             Parser.succeed String.slice
@@ -837,12 +847,19 @@ detectIfTurnWasInterrupted state =
                                     TurnWouldWorkWithoutInterruption
                                         { inputString = string
                                         , interruptionStart = previousTurn.startIndex + String.length previousTurn.string
+
+                                        -- Minus 1 for chomped character
                                         , interruptionEnd = tokenStartIndex - 1
                                         }
                                 )
 
                         else
-                            Parser.problem (ExpectingUnwantedString "")
+                            Parser.problem
+                                (CheckingForSpecificErrorType
+                                    { debugInfo =
+                                        "turn interrupted: Wasn't valid turn without interruption"
+                                    }
+                                )
                     )
 
 
@@ -850,7 +867,12 @@ detectIfApostrophePlacedOnWrongSide : ParserState -> OurParser a
 detectIfApostrophePlacedOnWrongSide state =
     case state.turnList of
         [] ->
-            Parser.problem (ExpectingUnwantedString "")
+            Parser.problem
+                (CheckingForSpecificErrorType
+                    { debugInfo =
+                        "wrong apostrophe: No previous turns"
+                    }
+                )
 
         previousTurn :: _ ->
             Parser.succeed String.slice
@@ -860,25 +882,35 @@ detectIfApostrophePlacedOnWrongSide state =
                 |> Parser.andThen
                     (\nextChar ->
                         if
-                            resultToBool
-                                (Parser.run
-                                    (turnParser |. Parser.end ExpectingEnd)
-                                    (String.dropRight 1 previousTurn.string
-                                        ++ nextChar
-                                        ++ String.right 1 previousTurn.string
+                            String.right 1 previousTurn.string
+                                == "'"
+                                && resultToBool
+                                    (Parser.run
+                                        (turnParser |. Parser.end ExpectingEnd)
+                                        (String.dropRight 1 previousTurn.string
+                                            ++ nextChar
+                                            ++ String.right 1 previousTurn.string
+                                        )
                                     )
-                                )
                         then
                             alwaysError
                                 (\{ string, tokenStartIndex } ->
                                     ApostropheWrongSideOfLength
                                         { inputString = string
+
+                                        -- Minus 1 for chomped character, and 1 more to point
+                                        -- back at the apostrophe we already passed
                                         , errorIndex = tokenStartIndex - 2
                                         }
                                 )
 
                         else
-                            Parser.problem (ExpectingUnwantedString "")
+                            Parser.problem
+                                (CheckingForSpecificErrorType
+                                    { debugInfo =
+                                        "wrong apostrophe: Wasn't valid after swap"
+                                    }
+                                )
                     )
 
 
@@ -909,7 +941,14 @@ errorIfTokenEncountered :
     -> ({ string : String, tokenStartIndex : Int } -> FromStringError)
     -> OurParser a
 errorIfTokenEncountered token fn =
-    Parser.token (Parser.Token token (ExpectingUnwantedString token))
+    Parser.token
+        (Parser.Token token
+            (CheckingForSpecificErrorType
+                { debugInfo =
+                    "error if token = `" ++ token ++ "`"
+                }
+            )
+        )
         |> andThenWithInputStringAndOffset
             (\( _, inputString, offset ) ->
                 Parser.problem <|
@@ -925,7 +964,10 @@ errorIfEndEncountered :
     ({ string : String, tokenStartIndex : Int } -> FromStringError)
     -> OurParser a
 errorIfEndEncountered fn =
-    Parser.end (ExpectingUnwantedString "")
+    Parser.end
+        (CheckingForSpecificErrorType
+            { debugInfo = "error if end encountered" }
+        )
         |> andThenWithInputStringAndOffset
             (\( _, inputString, offset ) ->
                 Parser.problem <|
@@ -943,7 +985,12 @@ errorIfChar :
     -> OurParser a
 errorIfChar condition fn =
     (Parser.getChompedString <|
-        Parser.chompIf condition (ExpectingUnwantedString "")
+        Parser.chompIf condition
+            (CheckingForSpecificErrorType
+                { debugInfo =
+                    "errorIfChar: not found"
+                }
+            )
     )
         |> andThenWithInputStringAndOffset
             (\( charString, inputString, offset ) ->
@@ -960,7 +1007,11 @@ errorIfChar condition fn =
                     _ ->
                         -- Getting chomped string for chompIf should always
                         -- be a single string
-                        Parser.problem WillNeverOccur
+                        Parser.problem
+                            (WillNeverOccur
+                                { debugInfo = "errorIfChar chompIf returned string of length different from 1"
+                                }
+                            )
             )
 
 
@@ -972,7 +1023,10 @@ alwaysError fn =
         -- This is what ensures no other options in a Parser.oneOf
         -- will run, as it stops looking as soon as one option has
         -- chomped a character
-        |. Parser.chompIf (always True) (ExpectingUnwantedString "")
+        |. Parser.chompIf (always True)
+            (CheckingForSpecificErrorType
+                { debugInfo = "alwaysError" }
+            )
         |= Parser.getSource
         |= Parser.getOffset
         |> Parser.andThen
@@ -992,25 +1046,37 @@ alwaysError fn =
 
 {-| All possible combinations of turnables, lengths and directions
 
-    List.length allTurns
-    --> List.length allTurnables * List.length allTurnLengths * List.length allTurnDirections
+Can for example be used if you ever need to list all possible turns to
+a user, or if you need to select a turn at random
+
+    import List.Nonempty
+
+    List.Nonempty.length allTurns
+    --> List.Nonempty.length allTurnables
+    -->     * List.Nonempty.length allTurnLengths
+    -->     * List.Nonempty.length allTurnDirections
 
 -}
-allTurns : List Turn
+allTurns : List.Nonempty.Nonempty Turn
 allTurns =
     ListM.return Turn
-        |> ListM.applicative (ListM.fromList allTurnables)
-        |> ListM.applicative (ListM.fromList allTurnLengths)
-        |> ListM.applicative (ListM.fromList allTurnDirections)
-        |> ListM.toList
+        |> ListM.applicative
+            (ListM.fromNonemptyList allTurnables)
+        |> ListM.applicative
+            (ListM.fromNonemptyList allTurnLengths)
+        |> ListM.applicative
+            (ListM.fromNonemptyList allTurnDirections)
+        |> ListM.toNonemptyList
 
 
 {-| All possible turnables
 
-    List.length allTurnables --> 12
+    import List.Nonempty
+
+    List.Nonempty.length allTurnables --> 12
 
 -}
-allTurnables : List Turnable
+allTurnables : List.Nonempty.Nonempty Turnable
 allTurnables =
     let
         fromU layer =
@@ -1056,10 +1122,12 @@ allTurnables =
 
 {-| All possible turn lengths
 
-    List.length allTurnLengths --> 3
+    import List.Nonempty
+
+    List.Nonempty.length allTurnLengths --> 3
 
 -}
-allTurnLengths : List TurnLength
+allTurnLengths : List.Nonempty.Nonempty TurnLength
 allTurnLengths =
     let
         fromOneQuarter length =
@@ -1078,10 +1146,12 @@ allTurnLengths =
 
 {-| All possible turn directions
 
-    List.length allTurnDirections --> 2
+    import List.Nonempty
+
+    List.Nonempty.length allTurnDirections --> 2
 
 -}
-allTurnDirections : List TurnDirection
+allTurnDirections : List.Nonempty.Nonempty TurnDirection
 allTurnDirections =
     let
         fromClockwise direction =

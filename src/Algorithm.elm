@@ -528,14 +528,17 @@ fromString string =
                 |> Result.mapError (parserErrorToFromStringError string)
     in
     case ( twoCharacterWideMovesResult, lowercaseWideMovesResult ) of
-        ( Ok _, _ ) ->
-            twoCharacterWideMovesResult
+        ( (Ok _) as result, _ ) ->
+            result
 
-        ( _, Ok _ ) ->
-            lowercaseWideMovesResult
+        ( _, (Ok _) as result ) ->
+            result
 
         ( Err (InvalidTurnable twoCharacter), Err (InvalidTurnable lowercase) ) ->
             let
+                -- We error on the later of the two errors, because that's
+                -- when the mixed style is first encountered assuming the
+                -- first one is the intended one
                 laterError =
                     if twoCharacter.errorIndex > lowercase.errorIndex then
                         twoCharacter
@@ -1069,14 +1072,14 @@ throwInvalidTurnableIfValidCharacters =
             (\previousCharString ->
                 case String.toList previousCharString of
                     -- We're at the start of the string as there is no previous character
+                    -- so we just do a normal check
                     [] ->
-                        -- We already checked for numbers and apostrophes at the start
                         errorIfValidCharacterEncountered
 
                     [ previousChar ] ->
-                        -- It resembles an attempt at a two character wide move so we include
-                        -- that in the invalidTurnable
                         if Char.isAlpha previousChar then
+                            -- It resembles an attempt at a two character wide move so we include
+                            -- that in the invalidTurnable
                             errorIfToken "w"
                                 (\{ string, tokenStartIndex } ->
                                     InvalidTurnable

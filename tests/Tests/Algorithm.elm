@@ -19,10 +19,10 @@ fromStringTests =
                 >> Expect.ok
         , fuzz2 fromStringValidAlgorithmFuzzer turnSeparator "a rendered algorithm is correctly retrieved no matter the separator with wide moves like Rw" <|
             \alg separator ->
-                renderAlgorithmLowercaseWideMoves alg separator
+                renderAlgorithmTwoCharacterWideMoves alg separator
                     |> Algorithm.fromString
                     |> Expect.equal (Ok alg)
-        , fuzz validAlgorithmStringTwoCharacterWideMoves "successfully parses valid algorithm strings with wide moves like r" <|
+        , fuzz validAlgorithmLowercaseWideMoves "successfully parses valid algorithm strings with wide moves like r" <|
             Algorithm.fromString
                 >> Expect.ok
         , fuzz2 fromStringValidAlgorithmFuzzer turnSeparator "a rendered algorithm is correctly retrieved no matter the separator with wide moves like r" <|

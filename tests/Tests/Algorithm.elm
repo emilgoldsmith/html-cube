@@ -405,6 +405,30 @@ toStringTests =
                         Algorithm.ThreeQuarters
                         Algorithm.CounterClockwise
                     , Algorithm.Turn
+                        Algorithm.Uw
+                        Algorithm.OneQuarter
+                        Algorithm.Clockwise
+                    , Algorithm.Turn
+                        Algorithm.Dw
+                        Algorithm.Halfway
+                        Algorithm.Clockwise
+                    , Algorithm.Turn
+                        Algorithm.Fw
+                        Algorithm.Halfway
+                        Algorithm.CounterClockwise
+                    , Algorithm.Turn
+                        Algorithm.Bw
+                        Algorithm.OneQuarter
+                        Algorithm.CounterClockwise
+                    , Algorithm.Turn
+                        Algorithm.Rw
+                        Algorithm.ThreeQuarters
+                        Algorithm.Clockwise
+                    , Algorithm.Turn
+                        Algorithm.Lw
+                        Algorithm.ThreeQuarters
+                        Algorithm.CounterClockwise
+                    , Algorithm.Turn
                         Algorithm.M
                         Algorithm.Halfway
                         Algorithm.Clockwise
@@ -430,7 +454,7 @@ toStringTests =
                         Algorithm.Clockwise
                     ]
                     |> Algorithm.toString
-                    |> Expect.equal "U D2 F2' B' R3 L3' M2 S2 E2 x2 y2 z2"
+                    |> Expect.equal "U D2 F2' B' R3 L3' Uw Dw2 Fw2' Bw' Rw3 Lw3' M2 S2 E2 x2 y2 z2"
         , test "handles empty algorithm" <|
             \_ ->
                 Algorithm.empty
@@ -520,7 +544,7 @@ obviouslyInvalidAlgorithmString =
             not <|
                 List.Nonempty.member c
                     (List.Nonempty.map
-                        renderTurnable
+                        (renderTurnable >> String.uncons >> Maybe.map Tuple.first >> Maybe.withDefault 'c')
                         Algorithm.allTurnables
                     )
 
@@ -601,7 +625,7 @@ renderTurn (Algorithm.Turn x length direction) =
     -- For double/triple turns clockwise we format it as U2' / U3' as these are used in some
     -- algorithms for explanations of fingertricks, also notice it's not U'2 or U'3. This
     -- decision was made based on "use in the wild" specifically the Youtuber Jperm's use.
-    String.fromChar (renderTurnable x) ++ renderLength length ++ renderDirection direction
+    renderTurnable x ++ renderLength length ++ renderDirection direction
 
 
 turnableFuzzer : Fuzz.Fuzzer Algorithm.Turnable
@@ -612,44 +636,62 @@ turnableFuzzer =
         |> Fuzz.oneOf
 
 
-renderTurnable : Algorithm.Turnable -> Char
+renderTurnable : Algorithm.Turnable -> String
 renderTurnable x =
     case x of
         Algorithm.U ->
-            'U'
+            "U"
 
         Algorithm.D ->
-            'D'
+            "D"
 
         Algorithm.L ->
-            'L'
+            "L"
 
         Algorithm.R ->
-            'R'
+            "R"
 
         Algorithm.F ->
-            'F'
+            "F"
 
         Algorithm.B ->
-            'B'
+            "B"
 
         Algorithm.M ->
-            'M'
+            "M"
 
         Algorithm.S ->
-            'S'
+            "S"
 
         Algorithm.E ->
-            'E'
+            "E"
+
+        Algorithm.Uw ->
+            "Uw"
+
+        Algorithm.Dw ->
+            "Dw"
+
+        Algorithm.Rw ->
+            "Rw"
+
+        Algorithm.Lw ->
+            "Lw"
+
+        Algorithm.Fw ->
+            "Fw"
+
+        Algorithm.Bw ->
+            "Bw"
 
         Algorithm.X ->
-            'x'
+            "x"
 
         Algorithm.Y ->
-            'y'
+            "y"
 
         Algorithm.Z ->
-            'z'
+            "z"
 
 
 turnLengthFuzzer : Fuzz.Fuzzer Algorithm.TurnLength

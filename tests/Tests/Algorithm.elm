@@ -373,6 +373,20 @@ fromStringTests =
                                 , symbol = invalidSymbol
                                 }
                         )
+        , test "Errors when mixing wide move styles two characters before lowercase" <|
+            \_ ->
+                Algorithm.fromString "Rw u"
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.WideMoveStylesMixed
+                        )
+        , test "Errors when mixing wide move styles lowercase before two characters" <|
+            \_ ->
+                Algorithm.fromString "r Uw"
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.WideMoveStylesMixed
+                        )
         ]
 
 

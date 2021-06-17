@@ -3,7 +3,7 @@
   "name": "emilgoldsmith/elm-speedcubing",
   "summary": "Models and html displays for speedcubing puzzles and algorithm sets",
   "license": "MIT",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "exposed-modules": [
     "Algorithm",
     "AUF",

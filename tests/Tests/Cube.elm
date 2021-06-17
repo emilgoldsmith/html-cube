@@ -724,6 +724,12 @@ getParallelGroup turn =
         Algorithm.Turn Algorithm.D _ _ ->
             UpOrDownGroup
 
+        Algorithm.Turn Algorithm.Uw _ _ ->
+            UpOrDownGroup
+
+        Algorithm.Turn Algorithm.Dw _ _ ->
+            UpOrDownGroup
+
         Algorithm.Turn Algorithm.E _ _ ->
             UpOrDownGroup
 
@@ -736,6 +742,12 @@ getParallelGroup turn =
         Algorithm.Turn Algorithm.B _ _ ->
             FrontOrBackGroup
 
+        Algorithm.Turn Algorithm.Fw _ _ ->
+            FrontOrBackGroup
+
+        Algorithm.Turn Algorithm.Bw _ _ ->
+            FrontOrBackGroup
+
         Algorithm.Turn Algorithm.S _ _ ->
             FrontOrBackGroup
 
@@ -746,6 +758,12 @@ getParallelGroup turn =
             LeftOrRightGroup
 
         Algorithm.Turn Algorithm.R _ _ ->
+            LeftOrRightGroup
+
+        Algorithm.Turn Algorithm.Lw _ _ ->
+            LeftOrRightGroup
+
+        Algorithm.Turn Algorithm.Rw _ _ ->
             LeftOrRightGroup
 
         Algorithm.Turn Algorithm.M _ _ ->

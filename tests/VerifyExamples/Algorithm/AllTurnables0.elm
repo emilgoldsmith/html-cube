@@ -17,12 +17,12 @@ import List.Nonempty
 
 spec0 : Test.Test
 spec0 =
-    Test.test "#allTurnables: \n\n    List.Nonempty.length allTurnables\n    --> 12" <|
+    Test.test "#allTurnables: \n\n    List.Nonempty.length allTurnables\n    --> 18" <|
         \() ->
             Expect.equal
                 (
                 List.Nonempty.length allTurnables
                 )
                 (
-                12
+                18
                 )

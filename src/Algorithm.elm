@@ -94,6 +94,13 @@ type Turnable
     | M
     | S
     | E
+      -- Wide Moves
+    | Uw
+    | Dw
+    | Lw
+    | Rw
+    | Fw
+    | Bw
       -- Whole cube rotations (lowercase type constructors not allowed in Elm)
     | X
     | Y
@@ -259,6 +266,24 @@ turnableToString x =
 
         E ->
             "E"
+
+        Uw ->
+            "Uw"
+
+        Dw ->
+            "Dw"
+
+        Rw ->
+            "Rw"
+
+        Lw ->
+            "Lw"
+
+        Fw ->
+            "Fw"
+
+        Bw ->
+            "Bw"
 
         X ->
             "x"
@@ -658,6 +683,10 @@ turnParser =
 turnableParser : OurParser Turnable
 turnableParser =
     allTurnables
+        -- Make sure we try the longest tokens first, as otherwise
+        -- "U" will be matched before "Uw" etc.
+        |> List.Nonempty.sortBy (turnableToString >> String.length)
+        |> List.Nonempty.reverse
         |> List.Nonempty.map turnableToTokenParser
         |> List.Nonempty.toList
         |> Parser.oneOf
@@ -1094,7 +1123,7 @@ turnables to a user, or if you need to select a turnable at random
 
     List.Nonempty.sample allTurnables
 
-    List.Nonempty.length allTurnables --> 12
+    List.Nonempty.length allTurnables --> 18
 
 -}
 allTurnables : List.Nonempty.Nonempty Turnable
@@ -1127,6 +1156,24 @@ allTurnables =
                     Just E
 
                 E ->
+                    Just Uw
+
+                Uw ->
+                    Just Dw
+
+                Dw ->
+                    Just Rw
+
+                Rw ->
+                    Just Lw
+
+                Lw ->
+                    Just Fw
+
+                Fw ->
+                    Just Bw
+
+                Bw ->
                     Just X
 
                 X ->

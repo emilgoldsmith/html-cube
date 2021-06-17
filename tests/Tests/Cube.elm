@@ -130,15 +130,7 @@ applyAlgorithmTests =
                         Algorithm.fromTurnList [ Algorithm.Turn Algorithm.U Algorithm.OneQuarter Algorithm.Clockwise ]
 
                     expectedRendering =
-                        solvedCubeRendering
-                            |> (\x -> { x | ufr = { plainCubie | u = UpColor, f = RightColor, r = BackColor } })
-                            |> (\x -> { x | uf = { plainCubie | u = UpColor, f = RightColor } })
-                            |> (\x -> { x | ufl = { plainCubie | u = UpColor, f = RightColor, l = FrontColor } })
-                            |> (\x -> { x | ul = { plainCubie | u = UpColor, l = FrontColor } })
-                            |> (\x -> { x | ubl = { plainCubie | u = UpColor, b = LeftColor, l = FrontColor } })
-                            |> (\x -> { x | ub = { plainCubie | u = UpColor, b = LeftColor } })
-                            |> (\x -> { x | ubr = { plainCubie | u = UpColor, b = LeftColor, r = BackColor } })
-                            |> (\x -> { x | ur = { plainCubie | u = UpColor, r = BackColor } })
+                        cycleColorsFromSolvedCubeOnSlices [ U ] [ FrontColor, LeftColor, BackColor, RightColor ]
                 in
                 Cube.solved
                     |> Cube.applyAlgorithm alg
@@ -151,15 +143,7 @@ applyAlgorithmTests =
                         Algorithm.fromTurnList [ Algorithm.Turn Algorithm.D Algorithm.OneQuarter Algorithm.Clockwise ]
 
                     expectedRendering =
-                        solvedCubeRendering
-                            |> (\x -> { x | dfl = { plainCubie | d = DownColor, f = LeftColor, l = BackColor } })
-                            |> (\x -> { x | df = { plainCubie | d = DownColor, f = LeftColor } })
-                            |> (\x -> { x | dfr = { plainCubie | d = DownColor, f = LeftColor, r = FrontColor } })
-                            |> (\x -> { x | dr = { plainCubie | d = DownColor, r = FrontColor } })
-                            |> (\x -> { x | dbr = { plainCubie | d = DownColor, b = RightColor, r = FrontColor } })
-                            |> (\x -> { x | db = { plainCubie | d = DownColor, b = RightColor } })
-                            |> (\x -> { x | dbl = { plainCubie | d = DownColor, b = RightColor, l = BackColor } })
-                            |> (\x -> { x | dl = { plainCubie | d = DownColor, l = BackColor } })
+                        cycleColorsFromSolvedCubeOnSlices [ D ] [ FrontColor, RightColor, BackColor, LeftColor ]
                 in
                 Cube.solved
                     |> Cube.applyAlgorithm alg
@@ -172,15 +156,7 @@ applyAlgorithmTests =
                         Algorithm.fromTurnList [ Algorithm.Turn Algorithm.L Algorithm.OneQuarter Algorithm.Clockwise ]
 
                     expectedRendering =
-                        solvedCubeRendering
-                            |> (\x -> { x | ubl = { plainCubie | u = BackColor, b = DownColor, l = LeftColor } })
-                            |> (\x -> { x | ul = { plainCubie | u = BackColor, l = LeftColor } })
-                            |> (\x -> { x | ufl = { plainCubie | u = BackColor, f = UpColor, l = LeftColor } })
-                            |> (\x -> { x | fl = { plainCubie | f = UpColor, l = LeftColor } })
-                            |> (\x -> { x | dfl = { plainCubie | d = FrontColor, f = UpColor, l = LeftColor } })
-                            |> (\x -> { x | dl = { plainCubie | d = FrontColor, l = LeftColor } })
-                            |> (\x -> { x | dbl = { plainCubie | d = FrontColor, b = DownColor, l = LeftColor } })
-                            |> (\x -> { x | bl = { plainCubie | b = DownColor, l = LeftColor } })
+                        cycleColorsFromSolvedCubeOnSlices [ L ] [ UpColor, FrontColor, DownColor, BackColor ]
                 in
                 Cube.solved
                     |> Cube.applyAlgorithm alg
@@ -193,15 +169,7 @@ applyAlgorithmTests =
                         Algorithm.fromTurnList [ Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.Clockwise ]
 
                     expectedRendering =
-                        solvedCubeRendering
-                            |> (\x -> { x | ufr = { plainCubie | u = FrontColor, f = DownColor, r = RightColor } })
-                            |> (\x -> { x | ur = { plainCubie | u = FrontColor, r = RightColor } })
-                            |> (\x -> { x | ubr = { plainCubie | u = FrontColor, b = UpColor, r = RightColor } })
-                            |> (\x -> { x | br = { plainCubie | b = UpColor, r = RightColor } })
-                            |> (\x -> { x | dbr = { plainCubie | d = BackColor, b = UpColor, r = RightColor } })
-                            |> (\x -> { x | dr = { plainCubie | d = BackColor, r = RightColor } })
-                            |> (\x -> { x | dfr = { plainCubie | d = BackColor, f = DownColor, r = RightColor } })
-                            |> (\x -> { x | fr = { plainCubie | f = DownColor, r = RightColor } })
+                        cycleColorsFromSolvedCubeOnSlices [ R ] [ UpColor, BackColor, DownColor, FrontColor ]
                 in
                 Cube.solved
                     |> Cube.applyAlgorithm alg
@@ -214,15 +182,7 @@ applyAlgorithmTests =
                         Algorithm.fromTurnList [ Algorithm.Turn Algorithm.F Algorithm.OneQuarter Algorithm.Clockwise ]
 
                     expectedRendering =
-                        solvedCubeRendering
-                            |> (\x -> { x | ufl = { plainCubie | u = LeftColor, f = FrontColor, l = DownColor } })
-                            |> (\x -> { x | uf = { plainCubie | u = LeftColor, f = FrontColor } })
-                            |> (\x -> { x | ufr = { plainCubie | u = LeftColor, f = FrontColor, r = UpColor } })
-                            |> (\x -> { x | fr = { plainCubie | f = FrontColor, r = UpColor } })
-                            |> (\x -> { x | dfr = { plainCubie | d = RightColor, f = FrontColor, r = UpColor } })
-                            |> (\x -> { x | df = { plainCubie | d = RightColor, f = FrontColor } })
-                            |> (\x -> { x | dfl = { plainCubie | d = RightColor, f = FrontColor, l = DownColor } })
-                            |> (\x -> { x | fl = { plainCubie | f = FrontColor, l = DownColor } })
+                        cycleColorsFromSolvedCubeOnSlices [ F ] [ UpColor, RightColor, DownColor, LeftColor ]
                 in
                 Cube.solved
                     |> Cube.applyAlgorithm alg
@@ -235,15 +195,7 @@ applyAlgorithmTests =
                         Algorithm.fromTurnList [ Algorithm.Turn Algorithm.B Algorithm.OneQuarter Algorithm.Clockwise ]
 
                     expectedRendering =
-                        solvedCubeRendering
-                            |> (\x -> { x | ubr = { plainCubie | u = RightColor, b = BackColor, r = DownColor } })
-                            |> (\x -> { x | ub = { plainCubie | u = RightColor, b = BackColor } })
-                            |> (\x -> { x | ubl = { plainCubie | u = RightColor, b = BackColor, l = UpColor } })
-                            |> (\x -> { x | bl = { plainCubie | b = BackColor, l = UpColor } })
-                            |> (\x -> { x | dbl = { plainCubie | d = LeftColor, b = BackColor, l = UpColor } })
-                            |> (\x -> { x | db = { plainCubie | d = LeftColor, b = BackColor } })
-                            |> (\x -> { x | dbr = { plainCubie | d = LeftColor, b = BackColor, r = DownColor } })
-                            |> (\x -> { x | br = { plainCubie | b = BackColor, r = DownColor } })
+                        cycleColorsFromSolvedCubeOnSlices [ B ] [ UpColor, LeftColor, DownColor, RightColor ]
                 in
                 Cube.solved
                     |> Cube.applyAlgorithm alg
@@ -256,15 +208,7 @@ applyAlgorithmTests =
                         Algorithm.fromTurnList [ Algorithm.Turn Algorithm.M Algorithm.OneQuarter Algorithm.Clockwise ]
 
                     expectedRendering =
-                        solvedCubeRendering
-                            |> (\x -> { x | ub = { plainCubie | u = BackColor, b = DownColor } })
-                            |> (\x -> { x | u = { plainCubie | u = BackColor } })
-                            |> (\x -> { x | uf = { plainCubie | u = BackColor, f = UpColor } })
-                            |> (\x -> { x | f = { plainCubie | f = UpColor } })
-                            |> (\x -> { x | df = { plainCubie | d = FrontColor, f = UpColor } })
-                            |> (\x -> { x | d = { plainCubie | d = FrontColor } })
-                            |> (\x -> { x | db = { plainCubie | d = FrontColor, b = DownColor } })
-                            |> (\x -> { x | b = { plainCubie | b = DownColor } })
+                        cycleColorsFromSolvedCubeOnSlices [ M ] [ UpColor, FrontColor, DownColor, BackColor ]
                 in
                 Cube.solved
                     |> Cube.applyAlgorithm alg
@@ -277,15 +221,7 @@ applyAlgorithmTests =
                         Algorithm.fromTurnList [ Algorithm.Turn Algorithm.S Algorithm.OneQuarter Algorithm.Clockwise ]
 
                     expectedRendering =
-                        solvedCubeRendering
-                            |> (\x -> { x | ul = { plainCubie | u = LeftColor, l = DownColor } })
-                            |> (\x -> { x | u = { plainCubie | u = LeftColor } })
-                            |> (\x -> { x | ur = { plainCubie | u = LeftColor, r = UpColor } })
-                            |> (\x -> { x | r = { plainCubie | r = UpColor } })
-                            |> (\x -> { x | dr = { plainCubie | d = RightColor, r = UpColor } })
-                            |> (\x -> { x | d = { plainCubie | d = RightColor } })
-                            |> (\x -> { x | dl = { plainCubie | d = RightColor, l = DownColor } })
-                            |> (\x -> { x | l = { plainCubie | l = DownColor } })
+                        cycleColorsFromSolvedCubeOnSlices [ S ] [ UpColor, RightColor, DownColor, LeftColor ]
                 in
                 Cube.solved
                     |> Cube.applyAlgorithm alg
@@ -298,15 +234,7 @@ applyAlgorithmTests =
                         Algorithm.fromTurnList [ Algorithm.Turn Algorithm.E Algorithm.OneQuarter Algorithm.Clockwise ]
 
                     expectedRendering =
-                        solvedCubeRendering
-                            |> (\x -> { x | fl = { plainCubie | f = LeftColor, l = BackColor } })
-                            |> (\x -> { x | f = { plainCubie | f = LeftColor } })
-                            |> (\x -> { x | fr = { plainCubie | f = LeftColor, r = FrontColor } })
-                            |> (\x -> { x | r = { plainCubie | r = FrontColor } })
-                            |> (\x -> { x | br = { plainCubie | b = RightColor, r = FrontColor } })
-                            |> (\x -> { x | b = { plainCubie | b = RightColor } })
-                            |> (\x -> { x | bl = { plainCubie | b = RightColor, l = BackColor } })
-                            |> (\x -> { x | l = { plainCubie | l = BackColor } })
+                        cycleColorsFromSolvedCubeOnSlices [ E ] [ FrontColor, RightColor, BackColor, LeftColor ]
                 in
                 Cube.solved
                     |> Cube.applyAlgorithm alg
@@ -318,46 +246,8 @@ applyAlgorithmTests =
                     alg =
                         Algorithm.fromTurnList [ Algorithm.Turn Algorithm.X Algorithm.OneQuarter Algorithm.Clockwise ]
 
-                    -- The faces do the following transformation: U -> B -> D -> F -> U
                     expectedRendering =
-                        { -- U Corners
-                          ufr = { plainCubie | u = FrontColor, f = DownColor, r = RightColor }
-                        , ufl = { plainCubie | u = FrontColor, f = DownColor, l = LeftColor }
-                        , ubl = { plainCubie | u = FrontColor, b = UpColor, l = LeftColor }
-                        , ubr = { plainCubie | u = FrontColor, b = UpColor, r = RightColor }
-
-                        -- D Corners
-                        , dbr = { plainCubie | d = BackColor, b = UpColor, r = RightColor }
-                        , dbl = { plainCubie | d = BackColor, b = UpColor, l = LeftColor }
-                        , dfl = { plainCubie | d = BackColor, f = DownColor, l = LeftColor }
-                        , dfr = { plainCubie | d = BackColor, f = DownColor, r = RightColor }
-
-                        -- M Edges
-                        , uf = { plainCubie | u = FrontColor, f = DownColor }
-                        , ub = { plainCubie | u = FrontColor, b = UpColor }
-                        , db = { plainCubie | d = BackColor, b = UpColor }
-                        , df = { plainCubie | d = BackColor, f = DownColor }
-
-                        -- S Edges
-                        , dl = { plainCubie | d = BackColor, l = LeftColor }
-                        , dr = { plainCubie | d = BackColor, r = RightColor }
-                        , ur = { plainCubie | u = FrontColor, r = RightColor }
-                        , ul = { plainCubie | u = FrontColor, l = LeftColor }
-
-                        -- E Edges
-                        , fl = { plainCubie | f = DownColor, l = LeftColor }
-                        , fr = { plainCubie | f = DownColor, r = RightColor }
-                        , br = { plainCubie | b = UpColor, r = RightColor }
-                        , bl = { plainCubie | b = UpColor, l = LeftColor }
-
-                        -- Centers
-                        , u = { plainCubie | u = FrontColor }
-                        , d = { plainCubie | d = BackColor }
-                        , f = { plainCubie | f = DownColor }
-                        , b = { plainCubie | b = UpColor }
-                        , l = { plainCubie | l = LeftColor }
-                        , r = { plainCubie | r = RightColor }
-                        }
+                        cycleColorsFromSolvedCubeOnSlices [ L, M, R ] [ UpColor, BackColor, DownColor, FrontColor ]
                 in
                 Cube.solved
                     |> Cube.applyAlgorithm alg
@@ -369,46 +259,8 @@ applyAlgorithmTests =
                     alg =
                         Algorithm.fromTurnList [ Algorithm.Turn Algorithm.Y Algorithm.OneQuarter Algorithm.Clockwise ]
 
-                    -- The faces do the following transformation: F -> L -> B -> R -> F
                     expectedRendering =
-                        { -- U Corners
-                          ufr = { plainCubie | u = UpColor, f = RightColor, r = BackColor }
-                        , ufl = { plainCubie | u = UpColor, f = RightColor, l = FrontColor }
-                        , ubl = { plainCubie | u = UpColor, b = LeftColor, l = FrontColor }
-                        , ubr = { plainCubie | u = UpColor, b = LeftColor, r = BackColor }
-
-                        -- D Corners
-                        , dbr = { plainCubie | d = DownColor, b = LeftColor, r = BackColor }
-                        , dbl = { plainCubie | d = DownColor, b = LeftColor, l = FrontColor }
-                        , dfl = { plainCubie | d = DownColor, f = RightColor, l = FrontColor }
-                        , dfr = { plainCubie | d = DownColor, f = RightColor, r = BackColor }
-
-                        -- M Edges
-                        , uf = { plainCubie | u = UpColor, f = RightColor }
-                        , ub = { plainCubie | u = UpColor, b = LeftColor }
-                        , db = { plainCubie | d = DownColor, b = LeftColor }
-                        , df = { plainCubie | d = DownColor, f = RightColor }
-
-                        -- S Edges
-                        , dl = { plainCubie | d = DownColor, l = FrontColor }
-                        , dr = { plainCubie | d = DownColor, r = BackColor }
-                        , ur = { plainCubie | u = UpColor, r = BackColor }
-                        , ul = { plainCubie | u = UpColor, l = FrontColor }
-
-                        -- E Edges
-                        , fl = { plainCubie | f = RightColor, l = FrontColor }
-                        , fr = { plainCubie | f = RightColor, r = BackColor }
-                        , br = { plainCubie | b = LeftColor, r = BackColor }
-                        , bl = { plainCubie | b = LeftColor, l = FrontColor }
-
-                        -- Centers
-                        , u = { plainCubie | u = UpColor }
-                        , d = { plainCubie | d = DownColor }
-                        , f = { plainCubie | f = RightColor }
-                        , b = { plainCubie | b = LeftColor }
-                        , l = { plainCubie | l = FrontColor }
-                        , r = { plainCubie | r = BackColor }
-                        }
+                        cycleColorsFromSolvedCubeOnSlices [ U, E, D ] [ FrontColor, LeftColor, BackColor, RightColor ]
                 in
                 Cube.solved
                     |> Cube.applyAlgorithm alg
@@ -420,52 +272,14 @@ applyAlgorithmTests =
                     alg =
                         Algorithm.fromTurnList [ Algorithm.Turn Algorithm.Z Algorithm.OneQuarter Algorithm.Clockwise ]
 
-                    -- The faces do the following transformation: U -> R -> D -> L -> U
                     expectedRendering =
-                        { -- U Corners
-                          ufr = { plainCubie | u = LeftColor, f = FrontColor, r = UpColor }
-                        , ufl = { plainCubie | u = LeftColor, f = FrontColor, l = DownColor }
-                        , ubl = { plainCubie | u = LeftColor, b = BackColor, l = DownColor }
-                        , ubr = { plainCubie | u = LeftColor, b = BackColor, r = UpColor }
-
-                        -- D Corners
-                        , dbr = { plainCubie | d = RightColor, b = BackColor, r = UpColor }
-                        , dbl = { plainCubie | d = RightColor, b = BackColor, l = DownColor }
-                        , dfl = { plainCubie | d = RightColor, f = FrontColor, l = DownColor }
-                        , dfr = { plainCubie | d = RightColor, f = FrontColor, r = UpColor }
-
-                        -- M Edges
-                        , uf = { plainCubie | u = LeftColor, f = FrontColor }
-                        , ub = { plainCubie | u = LeftColor, b = BackColor }
-                        , db = { plainCubie | d = RightColor, b = BackColor }
-                        , df = { plainCubie | d = RightColor, f = FrontColor }
-
-                        -- S Edges
-                        , dl = { plainCubie | d = RightColor, l = DownColor }
-                        , dr = { plainCubie | d = RightColor, r = UpColor }
-                        , ur = { plainCubie | u = LeftColor, r = UpColor }
-                        , ul = { plainCubie | u = LeftColor, l = DownColor }
-
-                        -- E Edges
-                        , fl = { plainCubie | f = FrontColor, l = DownColor }
-                        , fr = { plainCubie | f = FrontColor, r = UpColor }
-                        , br = { plainCubie | b = BackColor, r = UpColor }
-                        , bl = { plainCubie | b = BackColor, l = DownColor }
-
-                        -- Centers
-                        , u = { plainCubie | u = LeftColor }
-                        , d = { plainCubie | d = RightColor }
-                        , f = { plainCubie | f = FrontColor }
-                        , b = { plainCubie | b = BackColor }
-                        , l = { plainCubie | l = DownColor }
-                        , r = { plainCubie | r = UpColor }
-                        }
+                        cycleColorsFromSolvedCubeOnSlices [ F, S, B ] [ UpColor, RightColor, DownColor, LeftColor ]
                 in
                 Cube.solved
                     |> Cube.applyAlgorithm alg
                     |> Cube.Advanced.render
                     |> Expect.Extra.equalCubeRenderings expectedRendering
-        , test "0-length algorithm is identity operation to simplify types despite 0 length algorithm not making much sense" <|
+        , test "0-length algorithm is identity operation which can be useful for things like AUF modelling" <|
             \_ ->
                 Cube.solved |> Cube.applyAlgorithm Algorithm.empty |> Expect.equal Cube.solved
         ]
@@ -771,3 +585,185 @@ getParallelGroup turn =
 
         Algorithm.Turn Algorithm.X _ _ ->
             LeftOrRightGroup
+
+
+type Slice
+    = U
+    | D
+    | L
+    | R
+    | F
+    | B
+    | W
+    | M
+    | S
+    | E
+
+
+cycleColorsFromSolvedCubeOnSlices : List Slice -> List Color -> Cube.Advanced.Types.Rendering
+cycleColorsFromSolvedCubeOnSlices slices colors =
+    List.foldl
+        (\slice rendering ->
+            case slice of
+                U ->
+                    { rendering
+                        | ufl = cycleCubieRendering colors rendering.ufl
+                        , uf = cycleCubieRendering colors rendering.uf
+                        , ufr = cycleCubieRendering colors rendering.ufr
+                        , ur = cycleCubieRendering colors rendering.ur
+                        , ubr = cycleCubieRendering colors rendering.ubr
+                        , ub = cycleCubieRendering colors rendering.ub
+                        , ubl = cycleCubieRendering colors rendering.ubl
+                        , ul = cycleCubieRendering colors rendering.ul
+                    }
+
+                D ->
+                    { rendering
+                        | dfl = cycleCubieRendering colors rendering.dfl
+                        , df = cycleCubieRendering colors rendering.df
+                        , dfr = cycleCubieRendering colors rendering.dfr
+                        , dr = cycleCubieRendering colors rendering.dr
+                        , dbr = cycleCubieRendering colors rendering.dbr
+                        , db = cycleCubieRendering colors rendering.db
+                        , dbl = cycleCubieRendering colors rendering.dbl
+                        , dl = cycleCubieRendering colors rendering.dl
+                    }
+
+                L ->
+                    { rendering
+                        | ufl = cycleCubieRendering colors rendering.ufl
+                        , ul = cycleCubieRendering colors rendering.ul
+                        , ubl = cycleCubieRendering colors rendering.ubl
+                        , bl = cycleCubieRendering colors rendering.bl
+                        , dbl = cycleCubieRendering colors rendering.dbl
+                        , dl = cycleCubieRendering colors rendering.dl
+                        , dfl = cycleCubieRendering colors rendering.dfl
+                        , fl = cycleCubieRendering colors rendering.fl
+                    }
+
+                R ->
+                    { rendering
+                        | ufr = cycleCubieRendering colors rendering.ufr
+                        , ur = cycleCubieRendering colors rendering.ur
+                        , ubr = cycleCubieRendering colors rendering.ubr
+                        , br = cycleCubieRendering colors rendering.br
+                        , dbr = cycleCubieRendering colors rendering.dbr
+                        , dr = cycleCubieRendering colors rendering.dr
+                        , dfr = cycleCubieRendering colors rendering.dfr
+                        , fr = cycleCubieRendering colors rendering.fr
+                    }
+
+                F ->
+                    { rendering
+                        | ufr = cycleCubieRendering colors rendering.ufr
+                        , uf = cycleCubieRendering colors rendering.uf
+                        , ufl = cycleCubieRendering colors rendering.ufl
+                        , fl = cycleCubieRendering colors rendering.fl
+                        , dfl = cycleCubieRendering colors rendering.dfl
+                        , df = cycleCubieRendering colors rendering.df
+                        , dfr = cycleCubieRendering colors rendering.dfr
+                        , fr = cycleCubieRendering colors rendering.fr
+                    }
+
+                B ->
+                    { rendering
+                        | ubr = cycleCubieRendering colors rendering.ubr
+                        , ub = cycleCubieRendering colors rendering.ub
+                        , ubl = cycleCubieRendering colors rendering.ubl
+                        , bl = cycleCubieRendering colors rendering.bl
+                        , dbl = cycleCubieRendering colors rendering.dbl
+                        , db = cycleCubieRendering colors rendering.db
+                        , dbr = cycleCubieRendering colors rendering.dbr
+                        , br = cycleCubieRendering colors rendering.br
+                    }
+
+                M ->
+                    { rendering
+                        | uf = cycleCubieRendering colors rendering.uf
+                        , u = cycleCubieRendering colors rendering.u
+                        , ub = cycleCubieRendering colors rendering.ub
+                        , b = cycleCubieRendering colors rendering.b
+                        , db = cycleCubieRendering colors rendering.db
+                        , d = cycleCubieRendering colors rendering.d
+                        , df = cycleCubieRendering colors rendering.df
+                        , f = cycleCubieRendering colors rendering.f
+                    }
+
+                S ->
+                    { rendering
+                        | u = cycleCubieRendering colors rendering.u
+                        , ul = cycleCubieRendering colors rendering.ul
+                        , l = cycleCubieRendering colors rendering.l
+                        , dl = cycleCubieRendering colors rendering.dl
+                        , d = cycleCubieRendering colors rendering.d
+                        , dr = cycleCubieRendering colors rendering.dr
+                        , r = cycleCubieRendering colors rendering.r
+                        , ur = cycleCubieRendering colors rendering.ur
+                    }
+
+                E ->
+                    { rendering
+                        | f = cycleCubieRendering colors rendering.f
+                        , fr = cycleCubieRendering colors rendering.fr
+                        , r = cycleCubieRendering colors rendering.r
+                        , br = cycleCubieRendering colors rendering.br
+                        , b = cycleCubieRendering colors rendering.b
+                        , bl = cycleCubieRendering colors rendering.bl
+                        , l = cycleCubieRendering colors rendering.l
+                        , fl = cycleCubieRendering colors rendering.fl
+                    }
+
+                _ ->
+                    rendering
+        )
+        solvedCubeRendering
+        slices
+
+
+cycleCubieRendering : List Color -> Cube.Advanced.Types.CubieRendering -> Cube.Advanced.Types.CubieRendering
+cycleCubieRendering colors cubie =
+    { u = cycleColor colors cubie.u
+    , d = cycleColor colors cubie.d
+    , l = cycleColor colors cubie.l
+    , r = cycleColor colors cubie.r
+    , f = cycleColor colors cubie.f
+    , b = cycleColor colors cubie.b
+    }
+
+
+cycleColor : List Color -> Color -> Color
+cycleColor cycle color =
+    let
+        afterAndBefore =
+            -- We go from the right as U -> F -> R means we need to do the following
+            -- assignments R=F, F=U, U=R which goes from right to left
+            List.foldr
+                (\currentColor currentAfterAndBefore ->
+                    if List.length currentAfterAndBefore == 1 then
+                        -- The before color was found so this will be the after color
+                        -- by definition
+                        currentColor :: currentAfterAndBefore
+
+                    else if color == currentColor then
+                        -- We found the before color
+                        [ currentColor ]
+
+                    else
+                        currentAfterAndBefore
+                )
+                []
+                cycle
+    in
+    case afterAndBefore of
+        after :: _ :: _ ->
+            after
+
+        [ _ ] ->
+            -- If only one was found probably the match was the last
+            -- element so then the after is the end of the list as we folded
+            -- from the right
+            cycle |> List.reverse |> List.head |> Maybe.withDefault color
+
+        _ ->
+            -- Any other colors we just leave unchanged
+            color

@@ -232,13 +232,13 @@ turnToString (Turn turnable length direction) =
     -- fingertricks, also notice it's not U'2 or U'3. This decision
     -- was made based on "use in the wild" specifically the
     -- Youtuber J Perm's use.
-    turnableToString turnable
+    turnableToStringWideMovesTwoCharacters turnable
         ++ turnLengthToString length
         ++ turnDirectionToString direction
 
 
-turnableToString : Turnable -> String
-turnableToString x =
+turnableToStringWideMovesTwoCharacters : Turnable -> String
+turnableToStringWideMovesTwoCharacters x =
     case x of
         U ->
             "U"
@@ -284,6 +284,64 @@ turnableToString x =
 
         Bw ->
             "Bw"
+
+        X ->
+            "x"
+
+        Y ->
+            "y"
+
+        Z ->
+            "z"
+
+
+turnableToStringLowercaseWideMoves : Turnable -> String
+turnableToStringLowercaseWideMoves x =
+    case x of
+        U ->
+            "U"
+
+        D ->
+            "D"
+
+        L ->
+            "L"
+
+        R ->
+            "R"
+
+        F ->
+            "F"
+
+        B ->
+            "B"
+
+        M ->
+            "M"
+
+        S ->
+            "S"
+
+        E ->
+            "E"
+
+        Uw ->
+            "u"
+
+        Dw ->
+            "d"
+
+        Rw ->
+            "r"
+
+        Lw ->
+            "l"
+
+        Fw ->
+            "f"
+
+        Bw ->
+            "b"
 
         X ->
             "x"
@@ -682,18 +740,26 @@ turnParser =
 
 turnableParser : OurParser Turnable
 turnableParser =
-    allTurnables
-        -- Make sure we try the longest tokens first, as otherwise
-        -- "U" will be matched before "Uw" etc.
-        |> List.Nonempty.sortBy (turnableToString >> String.length)
-        |> List.Nonempty.reverse
-        |> List.Nonempty.map turnableToTokenParser
-        |> List.Nonempty.toList
-        |> Parser.oneOf
+    let
+        wideMovesTwoCharacters =
+            allTurnables
+                -- Make sure we try the longest tokens first, as otherwise
+                -- "U" will be matched before "Uw" etc.
+                |> List.Nonempty.sortBy (turnableToStringWideMovesTwoCharacters >> String.length)
+                |> List.Nonempty.reverse
+                |> List.Nonempty.map (turnableToTokenParser turnableToStringWideMovesTwoCharacters)
+                |> List.Nonempty.toList
+
+        wideMovesLowercase =
+            allTurnables
+                |> List.Nonempty.map (turnableToTokenParser turnableToStringLowercaseWideMoves)
+                |> List.Nonempty.toList
+    in
+    Parser.oneOf (wideMovesTwoCharacters ++ wideMovesLowercase)
 
 
-turnableToTokenParser : Turnable -> OurParser Turnable
-turnableToTokenParser turnable =
+turnableToTokenParser : (Turnable -> String) -> Turnable -> OurParser Turnable
+turnableToTokenParser turnableToString turnable =
     Parser.map (always turnable) <|
         Parser.token
             (Parser.Token

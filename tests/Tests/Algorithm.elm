@@ -14,12 +14,20 @@ import Test exposing (..)
 fromStringTests : Test
 fromStringTests =
     describe "fromString"
-        [ fuzz validAlgorithmString "successfully parses valid algorithm strings" <|
+        [ fuzz validAlgorithmStringTwoCharacterWideMoves "successfully parses valid algorithm strings with wide moves like Rw" <|
             Algorithm.fromString
                 >> Expect.ok
-        , fuzz2 fromStringValidAlgorithmFuzzer turnSeparator "a rendered algorithm is correctly retrieved no matter the separator" <|
+        , fuzz2 fromStringValidAlgorithmFuzzer turnSeparator "a rendered algorithm is correctly retrieved no matter the separator with wide moves like Rw" <|
             \alg separator ->
-                renderAlgorithm alg separator
+                renderAlgorithmLowercaseWideMoves alg separator
+                    |> Algorithm.fromString
+                    |> Expect.equal (Ok alg)
+        , fuzz validAlgorithmStringTwoCharacterWideMoves "successfully parses valid algorithm strings with wide moves like r" <|
+            Algorithm.fromString
+                >> Expect.ok
+        , fuzz2 fromStringValidAlgorithmFuzzer turnSeparator "a rendered algorithm is correctly retrieved no matter the separator with wide moves like r" <|
+            \alg separator ->
+                renderAlgorithmLowercaseWideMoves alg separator
                     |> Algorithm.fromString
                     |> Expect.equal (Ok alg)
         , test "handles differing whitespace separation between turns" <|
@@ -543,9 +551,15 @@ obviouslyInvalidAlgorithmString =
         notFaceOrSlice c =
             not <|
                 List.Nonempty.member c
-                    (List.Nonempty.map
-                        (renderTurnable >> String.uncons >> Maybe.map Tuple.first >> Maybe.withDefault 'c')
-                        Algorithm.allTurnables
+                    (List.Nonempty.append
+                        (List.Nonempty.map
+                            (renderTurnableTwoCharacterWideMoves >> String.uncons >> Maybe.map Tuple.first >> Maybe.withDefault 'c')
+                            Algorithm.allTurnables
+                        )
+                        (List.Nonempty.map
+                            (renderTurnableLowercaseWideMoves >> String.uncons >> Maybe.map Tuple.first >> Maybe.withDefault 'c')
+                            Algorithm.allTurnables
+                        )
                     )
 
         removeFaceAndSliceChars =
@@ -554,9 +568,14 @@ obviouslyInvalidAlgorithmString =
     Fuzz.map removeFaceAndSliceChars Fuzz.string
 
 
-validAlgorithmString : Fuzz.Fuzzer String
-validAlgorithmString =
-    Fuzz.map2 renderAlgorithm fromStringValidAlgorithmFuzzer turnSeparator
+validAlgorithmStringTwoCharacterWideMoves : Fuzz.Fuzzer String
+validAlgorithmStringTwoCharacterWideMoves =
+    Fuzz.map2 renderAlgorithmTwoCharacterWideMoves fromStringValidAlgorithmFuzzer turnSeparator
+
+
+validAlgorithmLowercaseWideMoves : Fuzz.Fuzzer String
+validAlgorithmLowercaseWideMoves =
+    Fuzz.map2 renderAlgorithmLowercaseWideMoves fromStringValidAlgorithmFuzzer turnSeparator
 
 
 fromStringValidAlgorithmFuzzer : Fuzz.Fuzzer Algorithm
@@ -595,11 +614,20 @@ algorithmFuzzer =
     Fuzz.map Algorithm.fromTurnList nonEmptyTurnList
 
 
-renderAlgorithm : Algorithm -> String -> String
-renderAlgorithm alg separator =
+renderAlgorithmTwoCharacterWideMoves : Algorithm -> String -> String
+renderAlgorithmTwoCharacterWideMoves alg separator =
     let
         renderedTurnList =
-            Algorithm.toTurnList >> List.map renderTurn <| alg
+            Algorithm.toTurnList >> List.map renderTurnTwoCharacterWideMoves <| alg
+    in
+    String.join separator renderedTurnList
+
+
+renderAlgorithmLowercaseWideMoves : Algorithm -> String -> String
+renderAlgorithmLowercaseWideMoves alg separator =
+    let
+        renderedTurnList =
+            Algorithm.toTurnList >> List.map renderTurnLowercaseWideMoves <| alg
     in
     String.join separator renderedTurnList
 
@@ -620,12 +648,20 @@ turnFuzzer =
     Fuzz.map3 Algorithm.Turn turnableFuzzer turnLengthFuzzer turnDirectionFuzzer
 
 
-renderTurn : Algorithm.Turn -> String
-renderTurn (Algorithm.Turn x length direction) =
+renderTurnTwoCharacterWideMoves : Algorithm.Turn -> String
+renderTurnTwoCharacterWideMoves (Algorithm.Turn x length direction) =
     -- For double/triple turns clockwise we format it as U2' / U3' as these are used in some
     -- algorithms for explanations of fingertricks, also notice it's not U'2 or U'3. This
     -- decision was made based on "use in the wild" specifically the Youtuber Jperm's use.
-    renderTurnable x ++ renderLength length ++ renderDirection direction
+    renderTurnableTwoCharacterWideMoves x ++ renderLength length ++ renderDirection direction
+
+
+renderTurnLowercaseWideMoves : Algorithm.Turn -> String
+renderTurnLowercaseWideMoves (Algorithm.Turn x length direction) =
+    -- For double/triple turns clockwise we format it as U2' / U3' as these are used in some
+    -- algorithms for explanations of fingertricks, also notice it's not U'2 or U'3. This
+    -- decision was made based on "use in the wild" specifically the Youtuber Jperm's use.
+    renderTurnableLowercaseWideMoves x ++ renderLength length ++ renderDirection direction
 
 
 turnableFuzzer : Fuzz.Fuzzer Algorithm.Turnable
@@ -636,8 +672,8 @@ turnableFuzzer =
         |> Fuzz.oneOf
 
 
-renderTurnable : Algorithm.Turnable -> String
-renderTurnable x =
+renderTurnableTwoCharacterWideMoves : Algorithm.Turnable -> String
+renderTurnableTwoCharacterWideMoves x =
     case x of
         Algorithm.U ->
             "U"
@@ -683,6 +719,64 @@ renderTurnable x =
 
         Algorithm.Bw ->
             "Bw"
+
+        Algorithm.X ->
+            "x"
+
+        Algorithm.Y ->
+            "y"
+
+        Algorithm.Z ->
+            "z"
+
+
+renderTurnableLowercaseWideMoves : Algorithm.Turnable -> String
+renderTurnableLowercaseWideMoves x =
+    case x of
+        Algorithm.U ->
+            "U"
+
+        Algorithm.D ->
+            "D"
+
+        Algorithm.L ->
+            "L"
+
+        Algorithm.R ->
+            "R"
+
+        Algorithm.F ->
+            "F"
+
+        Algorithm.B ->
+            "B"
+
+        Algorithm.M ->
+            "M"
+
+        Algorithm.S ->
+            "S"
+
+        Algorithm.E ->
+            "E"
+
+        Algorithm.Uw ->
+            "u"
+
+        Algorithm.Dw ->
+            "d"
+
+        Algorithm.Rw ->
+            "r"
+
+        Algorithm.Lw ->
+            "l"
+
+        Algorithm.Fw ->
+            "f"
+
+        Algorithm.Bw ->
+            "b"
 
         Algorithm.X ->
             "x"

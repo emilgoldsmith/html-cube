@@ -308,6 +308,29 @@ viewError error =
                     ]
                 ]
 
+        Algorithm.WideMoveStylesMixed { inputString, errorIndex, invalidWideMove } ->
+            div []
+                [ div []
+                    [ text
+                        ("It seems that you have mixed the `w` and lowercase wide move styles."
+                            ++ " This is not allowed, so please pick one and stick to it."
+                            ++ " The invalid wide move we detected was `"
+                            ++ invalidWideMove
+                            ++ "`."
+                        )
+                    ]
+                , div [ style "white-space" "pre" ]
+                    [ text inputString
+                    ]
+                , div [ style "white-space" "pre" ]
+                    -- One of several ways to ensure the arrow is indented
+                    -- exactly the right amount, as different characters have
+                    -- different widths, so just using spaces etc. isn't enough
+                    [ span [ style "visibility" "hidden" ] [ text (String.slice 0 errorIndex inputString) ]
+                    , text "^"
+                    ]
+                ]
+
         Algorithm.InvalidSymbol { inputString, errorIndex, symbol } ->
             div []
                 [ div []

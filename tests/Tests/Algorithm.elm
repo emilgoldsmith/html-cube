@@ -379,6 +379,10 @@ fromStringTests =
                     |> Expect.equal
                         (Err <|
                             Algorithm.WideMoveStylesMixed
+                                { inputString = "Rw u"
+                                , errorIndex = 3
+                                , invalidWideMove = "u"
+                                }
                         )
         , test "Errors when mixing wide move styles lowercase before two characters" <|
             \_ ->
@@ -386,6 +390,10 @@ fromStringTests =
                     |> Expect.equal
                         (Err <|
                             Algorithm.WideMoveStylesMixed
+                                { inputString = "r Uw"
+                                , errorIndex = 2
+                                , invalidWideMove = "Uw"
+                                }
                         )
         ]
 

@@ -465,6 +465,10 @@ type FromStringError
         , errorIndex : Int
         }
     | WideMoveStylesMixed
+        { inputString : String
+        , errorIndex : Int
+        , invalidWideMove : String
+        }
     | TurnWouldWorkWithoutInterruption
         { inputString : String
         , interruptionStart : Int
@@ -532,15 +536,21 @@ fromString string =
 
         ( Err (InvalidTurnable twoCharacter), Err (InvalidTurnable lowercase) ) ->
             let
-                latestError =
+                laterError =
                     if twoCharacter.errorIndex > lowercase.errorIndex then
                         twoCharacter
 
                     else
                         lowercase
             in
-            if stringIsWideMove latestError.invalidTurnable then
-                Err WideMoveStylesMixed
+            if stringIsWideMove laterError.invalidTurnable then
+                Err
+                    (WideMoveStylesMixed
+                        { inputString = laterError.inputString
+                        , errorIndex = laterError.errorIndex
+                        , invalidWideMove = laterError.invalidTurnable
+                        }
+                    )
 
             else
                 twoCharacterWideMovesResult

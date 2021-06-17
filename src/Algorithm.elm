@@ -464,6 +464,7 @@ type FromStringError
         { inputString : String
         , errorIndex : Int
         }
+    | WideMoveStylesMixed
     | TurnWouldWorkWithoutInterruption
         { inputString : String
         , interruptionStart : Int
@@ -513,8 +514,39 @@ why it failed
 -}
 fromString : String -> Result FromStringError Algorithm
 fromString string =
-    Parser.run algorithmParser string
-        |> Result.mapError (parserErrorToFromStringError string)
+    let
+        twoCharacterWideMovesResult =
+            Parser.run (algorithmParser turnableToStringWideMovesTwoCharacters) string
+                |> Result.mapError (parserErrorToFromStringError string)
+
+        lowercaseWideMovesResult =
+            Parser.run (algorithmParser turnableToStringLowercaseWideMoves) string
+                |> Result.mapError (parserErrorToFromStringError string)
+    in
+    case ( twoCharacterWideMovesResult, lowercaseWideMovesResult ) of
+        ( Ok _, _ ) ->
+            twoCharacterWideMovesResult
+
+        ( _, Ok _ ) ->
+            lowercaseWideMovesResult
+
+        ( Err (InvalidTurnable twoCharacter), Err (InvalidTurnable lowercase) ) ->
+            let
+                latestError =
+                    if twoCharacter.errorIndex > lowercase.errorIndex then
+                        twoCharacter
+
+                    else
+                        lowercase
+            in
+            if stringIsWideMove latestError.invalidTurnable then
+                Err WideMoveStylesMixed
+
+            else
+                twoCharacterWideMovesResult
+
+        _ ->
+            twoCharacterWideMovesResult
 
 
 parserErrorToFromStringError :
@@ -612,26 +644,27 @@ isWhitespace c =
     c == ' ' || c == '\t'
 
 
-algorithmParser : OurParser Algorithm
-algorithmParser =
+algorithmParser : (Turnable -> String) -> OurParser Algorithm
+algorithmParser turnableToString =
     Parser.succeed Algorithm
         |= Parser.loop
             { turnList = []
             , maybeStartParenthesisIndex = Nothing
             }
-            buildTurnListLoop
+            (buildTurnListLoop turnableToString)
         |> Parser.andThen verifyNotEmpty
 
 
 buildTurnListLoop :
-    ParserState
+    (Turnable -> String)
+    -> ParserState
     ->
         OurParser
             (Parser.Step
                 ParserState
                 (List Turn)
             )
-buildTurnListLoop state =
+buildTurnListLoop turnableToString state =
     Parser.succeed identity
         -- Deal with any whitespace between turns or parentheses
         |. whitespaceParser
@@ -649,7 +682,7 @@ buildTurnListLoop state =
                             |. Parser.symbol (Parser.Token "(" ExpectingOpeningParenthesis)
 
                         -- If no parenthesis try parsing a turn
-                        , parseTurnLoop state
+                        , parseTurnLoop turnableToString state
 
                         -- If there is no turn check if we're at the end
                         , Parser.end ExpectingEnd
@@ -659,7 +692,7 @@ buildTurnListLoop state =
 
                         -- Error appropriately if we encounter a closing parenthesis when we're not
                         -- inside a set of parentheses
-                        , errorIfTokenEncountered ")"
+                        , errorIfToken ")"
                             (\{ string, tokenStartIndex } ->
                                 UnmatchedClosingParenthesis
                                     { inputString = string
@@ -682,7 +715,7 @@ buildTurnListLoop state =
                                 startParenthesisIndex
 
                         -- If no closing parenthesis we just keep parsing turns
-                        , parseTurnLoop state
+                        , parseTurnLoop turnableToString state
 
                         -- If no turns, we error informatively if this is the end as
                         -- we are inside a set of parentheses so it shouldn't end yet
@@ -696,7 +729,7 @@ buildTurnListLoop state =
 
                         -- Error appropriately if we see another opening parenthesis inside a set
                         -- of parentheses
-                        , errorIfTokenEncountered "("
+                        , errorIfToken "("
                             (\{ string, tokenStartIndex } ->
                                 NestedParentheses
                                     { inputString = string
@@ -704,12 +737,12 @@ buildTurnListLoop state =
                                     }
                             )
                         ]
-            , classifyError state
+            , classifyError turnableToString state
             ]
 
 
-parseTurnLoop : ParserState -> OurParser (Parser.Step ParserState a)
-parseTurnLoop state =
+parseTurnLoop : (Turnable -> String) -> ParserState -> OurParser (Parser.Step ParserState a)
+parseTurnLoop turnableToString state =
     Parser.succeed
         (\turnStartIndex ( turnString, turn ) ->
             Parser.Loop
@@ -724,38 +757,30 @@ parseTurnLoop state =
         )
         |= Parser.getOffset
         -- Parse turn and also return the string that was parsed
-        |= (turnParser
+        |= (turnParser turnableToString
                 |> errorIfRepeatedTurnables state
                 |> Parser.mapChompedString Tuple.pair
            )
 
 
-turnParser : OurParser Turn
-turnParser =
+turnParser : (Turnable -> String) -> OurParser Turn
+turnParser turnableToString =
     Parser.succeed Turn
-        |= turnableParser
+        |= turnableParser turnableToString
         |= turnLengthParser
         |= directionParser
 
 
-turnableParser : OurParser Turnable
-turnableParser =
-    let
-        wideMovesTwoCharacters =
-            allTurnables
-                -- Make sure we try the longest tokens first, as otherwise
-                -- "U" will be matched before "Uw" etc.
-                |> List.Nonempty.sortBy (turnableToStringWideMovesTwoCharacters >> String.length)
-                |> List.Nonempty.reverse
-                |> List.Nonempty.map (turnableToTokenParser turnableToStringWideMovesTwoCharacters)
-                |> List.Nonempty.toList
-
-        wideMovesLowercase =
-            allTurnables
-                |> List.Nonempty.map (turnableToTokenParser turnableToStringLowercaseWideMoves)
-                |> List.Nonempty.toList
-    in
-    Parser.oneOf (wideMovesTwoCharacters ++ wideMovesLowercase)
+turnableParser : (Turnable -> String) -> OurParser Turnable
+turnableParser turnableToString =
+    allTurnables
+        |> List.Nonempty.toList
+        -- Make sure we try the longest tokens first, as otherwise
+        -- "U" will be matched before "Uw" etc.
+        |> List.sortBy (turnableToString >> String.length)
+        |> List.reverse
+        |> List.map (turnableToTokenParser turnableToString)
+        |> Parser.oneOf
 
 
 turnableToTokenParser : (Turnable -> String) -> Turnable -> OurParser Turnable
@@ -810,34 +835,23 @@ directionParser =
         ]
 
 
-classifyError : ParserState -> OurParser a
-classifyError state =
+classifyError : (Turnable -> String) -> ParserState -> OurParser a
+classifyError turnableToString state =
     Parser.oneOf
-        [ errorIfTokenEncountered "\n"
+        [ errorIfToken "\n"
             (\{ string } ->
                 SpansOverSeveralLines string
             )
 
         -- \u{000D} is the carriage return character \r but elm format forces it to
         -- this style. see https://github.com/avh4/elm-format/issues/376
-        , errorIfTokenEncountered "\u{000D}"
+        , errorIfToken "\u{000D}"
             (\{ string } ->
                 SpansOverSeveralLines string
             )
-        , detectIfTurnWasInterrupted state
-        , detectIfApostrophePlacedOnWrongSide state
-
-        -- If it's an alphanumeric character or ' we just log it as
-        -- an invalid turnable as those are the type of characters
-        -- we expect in an algorithm
-        , errorIfChar (\c -> Char.isAlphaNum c || c == '\'')
-            (\{ char, string, tokenStartIndex } ->
-                InvalidTurnable
-                    { inputString = string
-                    , errorIndex = tokenStartIndex
-                    , invalidTurnable = String.fromChar char
-                    }
-            )
+        , detectIfTurnWasInterrupted turnableToString state
+        , detectIfApostrophePlacedOnWrongSide turnableToString state
+        , throwInvalidTurnableIfValidCharacters
 
         -- If it's any other type of character we error it as an invalid symbol.
         -- We use this function to get the character as well as opposed to alwaysError
@@ -929,8 +943,8 @@ errorIfRepeatedTurnables state =
         )
 
 
-detectIfTurnWasInterrupted : ParserState -> OurParser a
-detectIfTurnWasInterrupted state =
+detectIfTurnWasInterrupted : (Turnable -> String) -> ParserState -> OurParser a
+detectIfTurnWasInterrupted turnableToString state =
     case state.turnList of
         [] ->
             Parser.problem
@@ -939,26 +953,38 @@ detectIfTurnWasInterrupted state =
                 )
 
         previousTurn :: _ ->
-            Parser.succeed String.slice
+            Parser.succeed
+                (\offset source ->
+                    ( offset
+                    , String.slice offset (offset + 1) source
+                    )
+                )
                 |= Parser.getOffset
-                |= Parser.map ((+) 1) Parser.getOffset
                 |= Parser.getSource
                 |> Parser.andThen
-                    (\nextChar ->
+                    (\( currentIndex, nextChar ) ->
+                        let
+                            interruptionStart =
+                                previousTurn.startIndex + String.length previousTurn.string
+
+                            interuptionEnd =
+                                currentIndex
+                        in
                         if
-                            resultToBool <|
-                                Parser.run
-                                    (turnParser |. Parser.end ExpectingEnd)
-                                    (previousTurn.string ++ nextChar)
+                            interruptionStart
+                                < interuptionEnd
+                                && (resultToBool <|
+                                        Parser.run
+                                            (turnParser turnableToString |. Parser.end ExpectingEnd)
+                                            (previousTurn.string ++ nextChar)
+                                   )
                         then
                             alwaysError
-                                (\{ string, tokenStartIndex } ->
+                                (\{ string } ->
                                     TurnWouldWorkWithoutInterruption
                                         { inputString = string
-                                        , interruptionStart = previousTurn.startIndex + String.length previousTurn.string
-
-                                        -- Minus 1 for chomped character
-                                        , interruptionEnd = tokenStartIndex - 1
+                                        , interruptionStart = interruptionStart
+                                        , interruptionEnd = interuptionEnd
                                         }
                                 )
 
@@ -972,8 +998,8 @@ detectIfTurnWasInterrupted state =
                     )
 
 
-detectIfApostrophePlacedOnWrongSide : ParserState -> OurParser a
-detectIfApostrophePlacedOnWrongSide state =
+detectIfApostrophePlacedOnWrongSide : (Turnable -> String) -> ParserState -> OurParser a
+detectIfApostrophePlacedOnWrongSide turnableToString state =
     case state.turnList of
         [] ->
             Parser.problem
@@ -993,9 +1019,10 @@ detectIfApostrophePlacedOnWrongSide state =
                         if
                             String.right 1 previousTurn.string
                                 == "'"
+                                && (nextChar == "2" || nextChar == "3")
                                 && resultToBool
                                     (Parser.run
-                                        (turnParser |. Parser.end ExpectingEnd)
+                                        (turnParser turnableToString |. Parser.end ExpectingEnd)
                                         (String.dropRight 1 previousTurn.string
                                             ++ nextChar
                                             ++ String.right 1 previousTurn.string
@@ -1007,9 +1034,8 @@ detectIfApostrophePlacedOnWrongSide state =
                                     ApostropheWrongSideOfLength
                                         { inputString = string
 
-                                        -- Minus 1 for chomped character, and 1 more to point
-                                        -- back at the apostrophe we already passed
-                                        , errorIndex = tokenStartIndex - 2
+                                        -- Minus 1 to point back at the apostrophe we already passed
+                                        , errorIndex = tokenStartIndex - 1
                                         }
                                 )
 
@@ -1021,6 +1047,57 @@ detectIfApostrophePlacedOnWrongSide state =
                                     }
                                 )
                     )
+
+
+throwInvalidTurnableIfValidCharacters : OurParser a
+throwInvalidTurnableIfValidCharacters =
+    Parser.succeed String.slice
+        |= Parser.map (\x -> x - 1) Parser.getOffset
+        |= Parser.getOffset
+        |= Parser.getSource
+        |> Parser.andThen
+            (\previousCharString ->
+                case String.toList previousCharString of
+                    -- We're at the start of the string as there is no previous character
+                    [] ->
+                        -- We already checked for numbers and apostrophes at the start
+                        errorIfValidCharacterEncountered
+
+                    [ previousChar ] ->
+                        -- It resembles an attempt at a two character wide move so we include
+                        -- that in the invalidTurnable
+                        if Char.isAlpha previousChar then
+                            errorIfToken "w"
+                                (\{ string, tokenStartIndex } ->
+                                    InvalidTurnable
+                                        { inputString = string
+                                        , errorIndex = tokenStartIndex - 1
+                                        , invalidTurnable = String.cons previousChar "w"
+                                        }
+                                )
+
+                        else
+                            errorIfValidCharacterEncountered
+
+                    _ ->
+                        Parser.problem
+                            (WillNeverOccur
+                                { debugInfo = "throwInvalidTurnable: single char string wasn't a single char"
+                                }
+                            )
+            )
+
+
+errorIfValidCharacterEncountered : OurParser a
+errorIfValidCharacterEncountered =
+    errorIfChar (\c -> Char.isAlphaNum c || c == '\'')
+        (\{ string, char, tokenStartIndex } ->
+            InvalidTurnable
+                { inputString = string
+                , errorIndex = tokenStartIndex
+                , invalidTurnable = String.fromChar char
+                }
+        )
 
 
 
@@ -1035,6 +1112,76 @@ andThenWithInputStringAndOffset fn parser =
         |> Parser.andThen fn
 
 
+stringIsWideMove : String -> Bool
+stringIsWideMove string =
+    let
+        wideMoves =
+            allTurnables
+                |> List.Nonempty.toList
+                |> List.filter turnableIsWideMove
+    in
+    List.member string (List.map turnableToStringWideMovesTwoCharacters wideMoves)
+        || List.member string (List.map turnableToStringLowercaseWideMoves wideMoves)
+
+
+turnableIsWideMove : Turnable -> Bool
+turnableIsWideMove turnable =
+    case turnable of
+        Uw ->
+            True
+
+        Dw ->
+            True
+
+        Lw ->
+            True
+
+        Rw ->
+            True
+
+        Fw ->
+            True
+
+        Bw ->
+            True
+
+        U ->
+            False
+
+        D ->
+            False
+
+        L ->
+            False
+
+        R ->
+            False
+
+        F ->
+            False
+
+        B ->
+            False
+
+        M ->
+            False
+
+        S ->
+            False
+
+        E ->
+            False
+
+        X ->
+            False
+
+        Y ->
+            False
+
+        Z ->
+            False
+
+
 resultToBool : Result a b -> Bool
 resultToBool =
     Result.map (always True) >> Result.withDefault False
@@ -1045,11 +1192,11 @@ whitespaceParser =
     Parser.chompWhile isWhitespace
 
 
-errorIfTokenEncountered :
+errorIfToken :
     String
     -> ({ string : String, tokenStartIndex : Int } -> FromStringError)
     -> OurParser a
-errorIfTokenEncountered token fn =
+errorIfToken token fn =
     Parser.token
         (Parser.Token token
             (CheckingForSpecificErrorType
@@ -1129,17 +1276,23 @@ alwaysError :
     -> OurParser a
 alwaysError fn =
     Parser.succeed Tuple.pair
+        |= Parser.getOffset
+        |= Parser.getSource
         -- This is what ensures no other options in a Parser.oneOf
         -- will run, as it stops looking as soon as one option has
         -- chomped a character
-        |. Parser.chompIf (always True)
-            (CheckingForSpecificErrorType
-                { debugInfo = "alwaysError" }
-            )
-        |= Parser.getSource
-        |= Parser.getOffset
+        |. Parser.oneOf
+            [ Parser.chompIf (always True)
+                (CheckingForSpecificErrorType
+                    { debugInfo = "alwaysError chompIf" }
+                )
+            , Parser.end
+                (CheckingForSpecificErrorType
+                    { debugInfo = "alwaysError end" }
+                )
+            ]
         |> Parser.andThen
-            (\( inputString, offset ) ->
+            (\( offset, inputString ) ->
                 Parser.problem <|
                     UserReadyError <|
                         fn

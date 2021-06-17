@@ -240,6 +240,84 @@ applyAlgorithmTests =
                     |> Cube.applyAlgorithm alg
                     |> Cube.Advanced.render
                     |> Expect.Extra.equalCubeRenderings expectedRendering
+        , test "Uw performs expected transformation" <|
+            \_ ->
+                let
+                    alg =
+                        Algorithm.fromTurnList [ Algorithm.Turn Algorithm.Uw Algorithm.OneQuarter Algorithm.Clockwise ]
+
+                    expectedRendering =
+                        cycleColorsFromSolvedCubeOnSlices [ U, E ] [ FrontColor, LeftColor, BackColor, RightColor ]
+                in
+                Cube.solved
+                    |> Cube.applyAlgorithm alg
+                    |> Cube.Advanced.render
+                    |> Expect.Extra.equalCubeRenderings expectedRendering
+        , test "Dw performs expected transformation" <|
+            \_ ->
+                let
+                    alg =
+                        Algorithm.fromTurnList [ Algorithm.Turn Algorithm.Dw Algorithm.OneQuarter Algorithm.Clockwise ]
+
+                    expectedRendering =
+                        cycleColorsFromSolvedCubeOnSlices [ D, E ] [ FrontColor, RightColor, BackColor, LeftColor ]
+                in
+                Cube.solved
+                    |> Cube.applyAlgorithm alg
+                    |> Cube.Advanced.render
+                    |> Expect.Extra.equalCubeRenderings expectedRendering
+        , test "Lw performs expected transformation" <|
+            \_ ->
+                let
+                    alg =
+                        Algorithm.fromTurnList [ Algorithm.Turn Algorithm.Lw Algorithm.OneQuarter Algorithm.Clockwise ]
+
+                    expectedRendering =
+                        cycleColorsFromSolvedCubeOnSlices [ L, M ] [ UpColor, FrontColor, DownColor, BackColor ]
+                in
+                Cube.solved
+                    |> Cube.applyAlgorithm alg
+                    |> Cube.Advanced.render
+                    |> Expect.Extra.equalCubeRenderings expectedRendering
+        , test "Rw performs expected transformation" <|
+            \_ ->
+                let
+                    alg =
+                        Algorithm.fromTurnList [ Algorithm.Turn Algorithm.Rw Algorithm.OneQuarter Algorithm.Clockwise ]
+
+                    expectedRendering =
+                        cycleColorsFromSolvedCubeOnSlices [ R, M ] [ UpColor, BackColor, DownColor, FrontColor ]
+                in
+                Cube.solved
+                    |> Cube.applyAlgorithm alg
+                    |> Cube.Advanced.render
+                    |> Expect.Extra.equalCubeRenderings expectedRendering
+        , test "Fw performs expected transformation" <|
+            \_ ->
+                let
+                    alg =
+                        Algorithm.fromTurnList [ Algorithm.Turn Algorithm.Fw Algorithm.OneQuarter Algorithm.Clockwise ]
+
+                    expectedRendering =
+                        cycleColorsFromSolvedCubeOnSlices [ F, S ] [ UpColor, RightColor, DownColor, LeftColor ]
+                in
+                Cube.solved
+                    |> Cube.applyAlgorithm alg
+                    |> Cube.Advanced.render
+                    |> Expect.Extra.equalCubeRenderings expectedRendering
+        , test "Bw performs expected transformation" <|
+            \_ ->
+                let
+                    alg =
+                        Algorithm.fromTurnList [ Algorithm.Turn Algorithm.Bw Algorithm.OneQuarter Algorithm.Clockwise ]
+
+                    expectedRendering =
+                        cycleColorsFromSolvedCubeOnSlices [ B, S ] [ UpColor, LeftColor, DownColor, RightColor ]
+                in
+                Cube.solved
+                    |> Cube.applyAlgorithm alg
+                    |> Cube.Advanced.render
+                    |> Expect.Extra.equalCubeRenderings expectedRendering
         , test "x performs expected transformation" <|
             \_ ->
                 let

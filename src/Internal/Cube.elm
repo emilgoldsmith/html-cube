@@ -484,7 +484,7 @@ getClockwiseQuarterTurnDefinition turnable =
         Algorithm.Uw ->
             Composed
                 [ Algorithm.Turn Algorithm.U Algorithm.OneQuarter Algorithm.Clockwise
-                , Algorithm.Turn Algorithm.E Algorithm.OneQuarter Algorithm.Clockwise
+                , Algorithm.Turn Algorithm.E Algorithm.OneQuarter Algorithm.CounterClockwise
                 ]
 
         Algorithm.Dw ->
@@ -496,7 +496,7 @@ getClockwiseQuarterTurnDefinition turnable =
         Algorithm.Rw ->
             Composed
                 [ Algorithm.Turn Algorithm.R Algorithm.OneQuarter Algorithm.Clockwise
-                , Algorithm.Turn Algorithm.M Algorithm.OneQuarter Algorithm.Clockwise
+                , Algorithm.Turn Algorithm.M Algorithm.OneQuarter Algorithm.CounterClockwise
                 ]
 
         Algorithm.Lw ->
@@ -514,7 +514,7 @@ getClockwiseQuarterTurnDefinition turnable =
         Algorithm.Bw ->
             Composed
                 [ Algorithm.Turn Algorithm.B Algorithm.OneQuarter Algorithm.Clockwise
-                , Algorithm.Turn Algorithm.S Algorithm.OneQuarter Algorithm.Clockwise
+                , Algorithm.Turn Algorithm.S Algorithm.OneQuarter Algorithm.CounterClockwise
                 ]
 
         Algorithm.X ->

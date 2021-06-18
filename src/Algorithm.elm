@@ -1,7 +1,7 @@
 module Algorithm exposing
     ( Algorithm, Turn(..), Turnable(..), TurnLength(..), TurnDirection(..)
     , fromTurnList, empty
-    , toString, fromString, FromStringError(..)
+    , toString, fromString, FromStringError(..), debugFromStringError
     , inverse, append, reverseAppend
     , allTurns, allTurnables, allTurnLengths, allTurnDirections
     , toTurnList
@@ -22,7 +22,7 @@ module Algorithm exposing
 
 # (De)Serialization
 
-@docs toString, fromString, FromStringError
+@docs toString, fromString, FromStringError, debugFromStringError
 
 
 # Helpers
@@ -505,6 +505,113 @@ type FromStringError
         , errorIndex : Int
         , debugInfo : String
         }
+
+
+{-| Describes the error as a string, and is not recommended
+to be displayed to end-users, but rather to be used in error
+mesages logged for developer's eyes etc.
+
+    case fromString algorithmString of
+        Ok _ ->
+            doSomethingOnSuccess
+
+        Err error ->
+            logError (debugFromStringError error)
+
+-}
+debugFromStringError : FromStringError -> String
+debugFromStringError error =
+    case error of
+        EmptyAlgorithm ->
+            "the algorithm string did not contain any turns"
+
+        InvalidTurnable { errorIndex, inputString, invalidTurnable } ->
+            "invalid turnable `"
+                ++ invalidTurnable
+                ++ "` found in `"
+                ++ inputString
+                ++ "` at index "
+                ++ String.fromInt errorIndex
+
+        InvalidTurnLength { errorIndex, inputString, invalidLength } ->
+            "invalid length `"
+                ++ invalidLength
+                ++ "` found in `"
+                ++ inputString
+                ++ "` at index "
+                ++ String.fromInt errorIndex
+
+        WideMoveStylesMixed { errorIndex, inputString, invalidWideMove } ->
+            "more than one wide move style was used in the same string. The first different wide move we found was `"
+                ++ invalidWideMove
+                ++ "` in `"
+                ++ inputString
+                ++ "` at index "
+                ++ String.fromInt errorIndex
+
+        InvalidSymbol { errorIndex, inputString, symbol } ->
+            "invalid symbol which would never work anywhere in an algorithm string `"
+                ++ String.fromChar symbol
+                ++ "` found in `"
+                ++ inputString
+                ++ "` at index "
+                ++ String.fromInt errorIndex
+
+        RepeatedTurnable { errorIndex, inputString } ->
+            "the same turnable was specified twice in a row in `"
+                ++ inputString
+                ++ "` at index "
+                ++ String.fromInt errorIndex
+
+        ApostropheWrongSideOfLength { errorIndex, inputString } ->
+            "the apostrophe was placed on the wrong side of the length specifier in `"
+                ++ inputString
+                ++ "` at index "
+                ++ String.fromInt errorIndex
+
+        UnclosedParenthesis { openParenthesisIndex, inputString } ->
+            "a parenthesis that was never closed was found in `"
+                ++ inputString
+                ++ "` at index "
+                ++ String.fromInt openParenthesisIndex
+
+        UnmatchedClosingParenthesis { errorIndex, inputString } ->
+            "a closing parenthesis with no opening match was found in `"
+                ++ inputString
+                ++ "` at index "
+                ++ String.fromInt errorIndex
+
+        EmptyParentheses { errorIndex, inputString } ->
+            "a set of parentheses didn't enclose a turn in `"
+                ++ inputString
+                ++ "` at index "
+                ++ String.fromInt errorIndex
+
+        NestedParentheses { errorIndex, inputString } ->
+            "a set of parentheses were nested inside another set in `"
+                ++ inputString
+                ++ "` at index "
+                ++ String.fromInt errorIndex
+
+        SpansOverSeveralLines inputString ->
+            "the following input string spans over several lines when not allowed to: "
+                ++ inputString
+
+        TurnWouldWorkWithoutInterruption { inputString, interruptionStart, interruptionEnd } ->
+            "an invalid turn was found but it would have worked if the characters between index "
+                ++ String.fromInt interruptionStart
+                ++ " and "
+                ++ String.fromInt interruptionEnd
+                ++ " were deleted in the string "
+                ++ inputString
+
+        UnexpectedError { inputString, errorIndex, debugInfo } ->
+            "an unexpected error occurred while parsing the string. It occurred at index "
+                ++ String.fromInt errorIndex
+                ++ " in string `"
+                ++ inputString
+                ++ "` and the debug info attached to it was `"
+                ++ debugInfo
 
 
 {-| Parses user input and either returns the algorithm

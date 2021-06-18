@@ -1,6 +1,6 @@
 module AUF exposing
     ( AUF(..), all
-    , toAlgorithm, toString, FromStringError(..), fromString
+    , toAlgorithm, toString, FromStringError(..), debugFromStringError, fromString
     )
 
 {-| Types and helpers to deal with Adjust U Face (AUF), which
@@ -19,7 +19,7 @@ for more information
 
 # Helpers
 
-@docs toAlgorithm, toString, FromStringError, fromString
+@docs toAlgorithm, toString, FromStringError, debugFromStringError, fromString
 
 -}
 
@@ -54,8 +54,6 @@ generate all the possible versions of an algorithm
 
     -- Generate a random one
     List.Nonempty.sample all
-
-    import PLL
 
     -- Get all versions of a Y perm
     all
@@ -156,8 +154,32 @@ has the problem with the string
 
 -}
 type FromStringError
-    = InvalidAUFAlgorithm
-    | AlgorithmParsingProblem Algorithm.FromStringError
+    = InvalidAUFAlgorithm String
+    | AlgorithmParsingError Algorithm.FromStringError
+
+
+{-| Describes the error as a string, and is not recommended
+to be displayed to end-users, but rather to be used in error
+mesages logged for developer's eyes etc.
+
+    case fromString aufString of
+        Ok _ ->
+            doSomethingOnSuccess
+
+        Err error ->
+            logError (debugFromStringError error)
+
+-}
+debugFromStringError : FromStringError -> String
+debugFromStringError error =
+    case error of
+        InvalidAUFAlgorithm inputString ->
+            "The input string was a valid algorithm "
+                ++ "but did not describe one of the 4 valid AUF possibilities: "
+                ++ inputString
+
+        AlgorithmParsingError algError ->
+            Algorithm.debugFromStringError algError
 
 
 {-| Attempts to parse an algorithmic representation of an AUF
@@ -167,7 +189,7 @@ type FromStringError
     fromString "" --> Ok None
 
     fromString "U B"
-    --> Err InvalidAUFAlgorithm
+    --> Err (InvalidAUFAlgorithm "U B")
 
 -}
 fromString : String -> Result FromStringError AUF
@@ -187,10 +209,10 @@ fromString stringValue =
     else
         stringValue
             |> Algorithm.fromString
-            |> Result.mapError AlgorithmParsingProblem
+            |> Result.mapError AlgorithmParsingError
             |> Result.map algorithmToAuf
             |> Result.andThen
-                (Result.fromMaybe InvalidAUFAlgorithm)
+                (Result.fromMaybe (InvalidAUFAlgorithm stringValue))
 
 
 algorithmToAuf : Algorithm -> Maybe AUF

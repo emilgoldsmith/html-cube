@@ -1,4 +1,4 @@
-module Tests.AUF exposing (fromStringTests)
+module Tests.AUF exposing (fromStringTests, toStringTests)
 
 import AUF exposing (AUF)
 import Algorithm
@@ -23,11 +23,11 @@ toStringTests =
                     |> Expect.equal "U"
         , test "works for CounterClockwise" <|
             \_ ->
-                AUF.toString AUF.Clockwise
+                AUF.toString AUF.CounterClockwise
                     |> Expect.equal "U'"
         , test "works for Halfway" <|
             \_ ->
-                AUF.toString AUF.Clockwise
+                AUF.toString AUF.Halfway
                     |> Expect.equal "U2"
         , fuzz aufFuzzer "is consistent with Algorithm.toString" <|
             \auf ->

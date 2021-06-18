@@ -16,12 +16,12 @@ import AUF exposing (..)
 
 spec0 : Test.Test
 spec0 =
-    Test.test "#fromString: \n\n    fromString \"U B\"\n    --> Err InvalidAUFAlgorithm" <|
+    Test.test "#fromString: \n\n    fromString \"U B\"\n    --> Err (InvalidAUFAlgorithm \"U B\")" <|
         \() ->
             Expect.equal
                 (
                 fromString "U B"
                 )
                 (
-                Err InvalidAUFAlgorithm
+                Err (InvalidAUFAlgorithm "U B")
                 )

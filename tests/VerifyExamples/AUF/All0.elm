@@ -7,7 +7,6 @@ import Test
 import Expect
 
 import AUF exposing (..)
-import PLL
 import List.Nonempty
 
 

@@ -11,7 +11,7 @@ import List.Nonempty
 import Monads.ListM as ListM
 import Parser exposing ((|.), (|=))
 import Test exposing (..)
-import TestHelpers.Cube exposing (cubeFuzzer, plainCubie, solvedCubeRendering)
+import TestHelpers.Cube exposing (cubeFuzzer, solvedCubeRendering)
 import Tests.Algorithm exposing (algorithmFuzzer, turnDirectionFuzzer, turnFuzzer, turnableFuzzer)
 
 
@@ -672,7 +672,6 @@ type Slice
     | R
     | F
     | B
-    | W
     | M
     | S
     | E
@@ -790,9 +789,6 @@ cycleColorsFromSolvedCubeOnSlices slices colors =
                         , l = cycleCubieRendering colors rendering.l
                         , fl = cycleCubieRendering colors rendering.fl
                     }
-
-                _ ->
-                    rendering
         )
         solvedCubeRendering
         slices

@@ -235,6 +235,33 @@ getLetters pll =
             "Y"
 
 
+{-| Check whether an algorithm solves a PLL case.
+
+Note that actually solving the cube depends on it being in
+the correct execution angle as well and doing the last AUF.
+This function just checks if with those correctly aligned
+the algorithm can solve it. So different algorithms can
+pass this as seen in these examples:
+
+    import Algorithm
+
+    Algorithm.fromString "(x) R' U R' D2 R U' R' D2 R2 (x')"
+        |> Result.map (\alg -> solvedBy alg Aa)
+    --> Ok True
+
+    Algorithm.fromString "U (x) R' U R' D2 R U' R' D2 R2 (x')"
+        |> Result.map (\alg -> solvedBy alg Aa)
+    --> Ok True
+
+    Algorithm.fromString "(x) R' U R' D2 R U' R' D2 R2 (x') U"
+        |> Result.map (\alg -> solvedBy alg Aa)
+    --> Ok True
+
+    Algorithm.fromString "U"
+        |> Result.map (\alg -> solvedBy alg Aa)
+    --> Ok False
+
+-}
 solvedBy : Algorithm -> PLL -> Bool
 solvedBy algorithm pll =
     let

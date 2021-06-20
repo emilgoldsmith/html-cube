@@ -1,4 +1,4 @@
-module Tests.PLL exposing (getAlgorithmTests, referenceAlgTests)
+module Tests.PLL exposing (getAlgorithmTests, referenceAlgTests, solvedByTests)
 
 import AUF
 import Algorithm
@@ -6,10 +6,12 @@ import Cube
 import Cube.Advanced
 import Cube.Advanced.Types as CubeTypes exposing (Color(..))
 import Expect
+import Fuzz
 import List.Nonempty
-import PLL
+import PLL exposing (PLL)
 import Test exposing (..)
 import TestHelpers.Cube exposing (plainCubie, solvedCubeRendering)
+import Tests.AUF exposing (aufFuzzer)
 
 
 referenceAlgTests : Test
@@ -294,6 +296,57 @@ getAlgorithmTests =
         ]
 
 
+solvedByTests : Test
+solvedByTests =
+    describe "solvedBy"
+        [ test "obviously wrong case fails check" <|
+            \_ ->
+                PLL.solvedBy Algorithm.empty PLL.Aa
+                    |> Expect.false "Aa PLL was deemed solved by an empty algorithm"
+        , fuzz3 aufFuzzer aufFuzzer pllFuzzer "pll is solved by its reference algorithm no matter what auf combination applied to it" <|
+            \preAUF postAUF pll ->
+                let
+                    referenceAlgorithm =
+                        PLL.getAlgorithm PLL.referenceAlgorithms pll
+
+                    withAUFs =
+                        Algorithm.append (AUF.toAlgorithm preAUF) referenceAlgorithm
+                            |> Algorithm.reverseAppend (AUF.toAlgorithm postAUF)
+                in
+                PLL.solvedBy
+                    withAUFs
+                    pll
+                    |> Expect.true
+                        ("PLL "
+                            ++ PLL.getLetters pll
+                            ++ " was not solved by its reference algorithm with pre AUF "
+                            ++ (if String.isEmpty <| AUF.toString preAUF then
+                                    "none"
+
+                                else
+                                    AUF.toString preAUF
+                               )
+                            ++ " and post AUF "
+                            ++ (if String.isEmpty <| AUF.toString postAUF then
+                                    "none"
+
+                                else
+                                    AUF.toString postAUF
+                               )
+                        )
+        , test "first version of an H perm passes H perm" <|
+            \_ ->
+                Algorithm.fromString "F2 M2' F2 U' F2 M2' F2"
+                    |> Result.map (\alg -> PLL.solvedBy alg PLL.H)
+                    |> Expect.equal (Ok True)
+        , test "second version of an H perm passes H perm" <|
+            \_ ->
+                Algorithm.fromString "S R U2 R2 U2 R2 U2 R S'"
+                    |> Result.map (\alg -> PLL.solvedBy alg PLL.H)
+                    |> Expect.equal (Ok True)
+        ]
+
+
 expectEqualDisregardingAUF : CubeTypes.Rendering -> Algorithm.Algorithm -> Expect.Expectation
 expectEqualDisregardingAUF expectedRendering alg =
     let
@@ -342,3 +395,11 @@ getShorterString a b =
 
     else
         b
+
+
+pllFuzzer : Fuzz.Fuzzer PLL
+pllFuzzer =
+    PLL.all
+        |> List.Nonempty.map Fuzz.constant
+        |> List.Nonempty.toList
+        |> Fuzz.oneOf

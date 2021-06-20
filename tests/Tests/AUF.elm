@@ -1,4 +1,4 @@
-module Tests.AUF exposing (fromStringTests, toStringTests)
+module Tests.AUF exposing (aufFuzzer, fromStringTests, toStringTests)
 
 import AUF exposing (AUF)
 import Algorithm

@@ -1,6 +1,6 @@
 module PLL exposing
     ( PLL(..), all
-    , getLetters
+    , getLetters, solvedBy
     , Algorithms, getAlgorithm, referenceAlgorithms
     )
 
@@ -17,7 +17,7 @@ for further information
 
 # Helpers
 
-@docs getLetters
+@docs getLetters, solvedBy
 
 
 # Collections
@@ -26,7 +26,9 @@ for further information
 
 -}
 
-import Algorithm
+import AUF
+import Algorithm exposing (Algorithm)
+import Cube
 import List.Nonempty
 import Utils.Enumerator
 
@@ -233,6 +235,31 @@ getLetters pll =
             "Y"
 
 
+solvedBy : Algorithm -> PLL -> Bool
+solvedBy algorithm pll =
+    let
+        allAufCombinations =
+            List.Nonempty.concatMap
+                (\preAUF -> List.Nonempty.map (Tuple.pair preAUF) AUF.all)
+                AUF.all
+    in
+    List.Nonempty.any
+        (\( preAUF, postAUF ) ->
+            Algorithm.append (AUF.toAlgorithm preAUF) algorithm
+                |> Algorithm.reverseAppend (AUF.toAlgorithm postAUF)
+                |> algorithmsAreEquivalent (getAlgorithm referenceAlgorithms pll)
+        )
+        allAufCombinations
+
+
+algorithmsAreEquivalent : Algorithm -> Algorithm -> Bool
+algorithmsAreEquivalent a b =
+    Cube.solved
+        |> Cube.applyAlgorithm a
+        |> Cube.applyAlgorithm (Algorithm.inverse b)
+        |> (==) Cube.solved
+
+
 
 -- COLLECTIONS
 
@@ -241,31 +268,31 @@ getLetters pll =
 -}
 type alias Algorithms =
     { -- Edges only
-      h : Algorithm.Algorithm
-    , ua : Algorithm.Algorithm
-    , ub : Algorithm.Algorithm
-    , z : Algorithm.Algorithm
+      h : Algorithm
+    , ua : Algorithm
+    , ub : Algorithm
+    , z : Algorithm
 
     -- Corners only
-    , aa : Algorithm.Algorithm
-    , ab : Algorithm.Algorithm
-    , e : Algorithm.Algorithm
+    , aa : Algorithm
+    , ab : Algorithm
+    , e : Algorithm
 
     -- Edges And Corners
-    , f : Algorithm.Algorithm
-    , ga : Algorithm.Algorithm
-    , gb : Algorithm.Algorithm
-    , gc : Algorithm.Algorithm
-    , gd : Algorithm.Algorithm
-    , ja : Algorithm.Algorithm
-    , jb : Algorithm.Algorithm
-    , na : Algorithm.Algorithm
-    , nb : Algorithm.Algorithm
-    , ra : Algorithm.Algorithm
-    , rb : Algorithm.Algorithm
-    , t : Algorithm.Algorithm
-    , v : Algorithm.Algorithm
-    , y : Algorithm.Algorithm
+    , f : Algorithm
+    , ga : Algorithm
+    , gb : Algorithm
+    , gc : Algorithm
+    , gd : Algorithm
+    , ja : Algorithm
+    , jb : Algorithm
+    , na : Algorithm
+    , nb : Algorithm
+    , ra : Algorithm
+    , rb : Algorithm
+    , t : Algorithm
+    , v : Algorithm
+    , y : Algorithm
     }
 
 
@@ -277,7 +304,7 @@ in order to get the algorithm for a case passed to a function
     --> referenceAlgorithms.y
 
 -}
-getAlgorithm : Algorithms -> PLL -> Algorithm.Algorithm
+getAlgorithm : Algorithms -> PLL -> Algorithm
 getAlgorithm algorithms pll =
     case pll of
         H ->

@@ -99,66 +99,66 @@ fromStringTests =
                     |> Expect.equal (Err Algorithm.EmptyAlgorithm)
         , test "An unexpected alphabetic character errors as invalid turnable" <|
             \_ ->
-                Algorithm.fromString "UB'AFM2'"
+                Algorithm.fromString "UB' AFM2'"
                     |> Expect.equal
                         (Err <|
                             Algorithm.InvalidTurnable
-                                { inputString = "UB'AFM2'"
-                                , errorIndex = 3
+                                { inputString = "UB' AFM2'"
+                                , errorIndex = 4
                                 , invalidTurnable = "A"
                                 }
                         )
         , test "errors on 2 apostrophes in a row expecting a turnable" <|
             \_ ->
-                Algorithm.fromString "U''"
+                Algorithm.fromString "B U''"
                     |> Expect.equal
                         (Err <|
                             Algorithm.InvalidTurnable
-                                { inputString = "U''"
-                                , errorIndex = 2
+                                { inputString = "B U''"
+                                , errorIndex = 4
                                 , invalidTurnable = "'"
                                 }
                         )
         , test "errors on whitespace between the turnable and the apostrophe" <|
             \_ ->
-                Algorithm.fromString "U  \t '"
+                Algorithm.fromString "B U  \t '"
                     |> Expect.equal
                         (Err <|
                             Algorithm.TurnWouldWorkWithoutInterruption
-                                { inputString = "U  \t '"
-                                , interruptionStart = 1
-                                , interruptionEnd = 5
+                                { inputString = "B U  \t '"
+                                , interruptionStart = 3
+                                , interruptionEnd = 7
                                 }
                         )
         , test "errors on space between turnable and turn length" <|
             \_ ->
-                Algorithm.fromString "U \t \t 2"
+                Algorithm.fromString "B U \t \t 2"
                     |> Expect.equal
                         (Err <|
                             Algorithm.TurnWouldWorkWithoutInterruption
-                                { inputString = "U \t \t 2"
-                                , interruptionStart = 1
-                                , interruptionEnd = 6
+                                { inputString = "B U \t \t 2"
+                                , interruptionStart = 3
+                                , interruptionEnd = 8
                                 }
                         )
         , test "errors on apostrophe before turn length" <|
             \_ ->
-                Algorithm.fromString "U'2"
+                Algorithm.fromString "B U'2"
                     |> Expect.equal
                         (Err <|
                             Algorithm.ApostropheWrongSideOfLength
-                                { inputString = "U'2"
-                                , errorIndex = 1
+                                { inputString = "B U'2"
+                                , errorIndex = 3
                                 }
                         )
         , test "errors on turn length specified twice" <|
             \_ ->
-                Algorithm.fromString "U22'"
+                Algorithm.fromString "B U22'"
                     |> Expect.equal
                         (Err <|
                             Algorithm.InvalidTurnLength
-                                { inputString = "U22'"
-                                , errorIndex = 1
+                                { inputString = "B U22'"
+                                , errorIndex = 3
                                 , invalidLength = "22"
                                 }
                         )
@@ -209,57 +209,54 @@ fromStringTests =
                         )
         , test "errors on turn length 4" <|
             \_ ->
-                Algorithm.fromString "U4"
+                Algorithm.fromString "B U4"
                     |> Expect.equal
                         (Err <|
                             Algorithm.InvalidTurnLength
-                                { inputString = "U4"
-                                , errorIndex = 1
+                                { inputString = "B U4"
+                                , errorIndex = 3
                                 , invalidLength = "4"
                                 }
                         )
         , test "errors on turn length 1" <|
             \_ ->
-                Algorithm.fromString "B'F3U1"
+                Algorithm.fromString "B'F3 U1"
                     |> Expect.equal
                         (Err <|
                             Algorithm.InvalidTurnLength
-                                { inputString = "B'F3U1"
-                                , errorIndex = 5
+                                { inputString = "B'F3 U1"
+                                , errorIndex = 6
                                 , invalidLength = "1"
                                 }
                         )
-
-        -- Seems like the only use for that could be to specify not to double flick in a
-        -- special case? But should be safe to error on that and assume it's an input error
         , test "The same turnable specified twice in a row errors" <|
             \_ ->
-                Algorithm.fromString "U2'U'"
+                Algorithm.fromString "U2' U'"
                     |> Expect.equal
                         (Err <|
                             Algorithm.RepeatedTurnable
-                                { inputString = "U2'U'"
-                                , errorIndex = 3
+                                { inputString = "U2' U'"
+                                , errorIndex = 4
                                 }
                         )
         , test "Never closing a set of parentheses errors" <|
             \_ ->
-                Algorithm.fromString "(U2B'"
+                Algorithm.fromString "B ( U2B'"
                     |> Expect.equal
                         (Err <|
                             Algorithm.UnclosedParenthesis
-                                { inputString = "(U2B'"
-                                , openParenthesisIndex = 0
+                                { inputString = "B ( U2B'"
+                                , openParenthesisIndex = 2
                                 }
                         )
         , test "Errors on an unmatched closing parenthesis" <|
             \_ ->
-                Algorithm.fromString "U2B)"
+                Algorithm.fromString "U2 B ) F2"
                     |> Expect.equal
                         (Err <|
                             Algorithm.UnmatchedClosingParenthesis
-                                { inputString = "U2B)"
-                                , errorIndex = 3
+                                { inputString = "U2 B ) F2"
+                                , errorIndex = 5
                                 }
                         )
         , test "Errors on starting algorithm with closing parenthesis" <|
@@ -304,24 +301,24 @@ fromStringTests =
                         )
         , test "Errors as expected on opening parenthesis breaking up a turn" <|
             \_ ->
-                Algorithm.fromString "U(2')"
+                Algorithm.fromString "B U(2')"
                     |> Expect.equal
                         (Err <|
                             Algorithm.TurnWouldWorkWithoutInterruption
-                                { inputString = "U(2')"
-                                , interruptionStart = 1
-                                , interruptionEnd = 2
+                                { inputString = "B U(2')"
+                                , interruptionStart = 3
+                                , interruptionEnd = 4
                                 }
                         )
         , test "Errors as expected on closing parenthesis breaking up a turn" <|
             \_ ->
-                Algorithm.fromString "(U)2"
+                Algorithm.fromString "B (U)2"
                     |> Expect.equal
                         (Err <|
                             Algorithm.TurnWouldWorkWithoutInterruption
-                                { inputString = "(U)2"
-                                , interruptionStart = 2
-                                , interruptionEnd = 3
+                                { inputString = "B (U)2"
+                                , interruptionStart = 4
+                                , interruptionEnd = 5
                                 }
                         )
         , test "Errors as expected on incomplete nested parentheses with open" <|
@@ -375,23 +372,23 @@ fromStringTests =
                         )
         , test "Errors when mixing wide move styles two characters before lowercase" <|
             \_ ->
-                Algorithm.fromString "Rw u"
+                Algorithm.fromString "B Rw u"
                     |> Expect.equal
                         (Err <|
                             Algorithm.WideMoveStylesMixed
-                                { inputString = "Rw u"
-                                , errorIndex = 3
+                                { inputString = "B Rw u"
+                                , errorIndex = 5
                                 , invalidWideMove = "u"
                                 }
                         )
         , test "Errors when mixing wide move styles lowercase before two characters" <|
             \_ ->
-                Algorithm.fromString "r Uw"
+                Algorithm.fromString "B r Uw"
                     |> Expect.equal
                         (Err <|
                             Algorithm.WideMoveStylesMixed
-                                { inputString = "r Uw"
-                                , errorIndex = 2
+                                { inputString = "B r Uw"
+                                , errorIndex = 4
                                 , invalidWideMove = "Uw"
                                 }
                         )

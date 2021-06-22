@@ -863,7 +863,7 @@ buildTurnListLoop turnableToString state =
 
 parseTurnLoop : (Turnable -> String) -> ParserState -> OurParser (Parser.Step ParserState a)
 parseTurnLoop turnableToString state =
-    Parser.succeed
+    (Parser.succeed
         (\turnStartIndex ( turnString, turn ) ->
             Parser.Loop
                 { state
@@ -878,9 +878,10 @@ parseTurnLoop turnableToString state =
         |= Parser.getOffset
         -- Parse turn and also return the string that was parsed
         |= (turnParser turnableToString
-                |> errorIfRepeatedTurnables state
                 |> Parser.mapChompedString Tuple.pair
            )
+    )
+        |> errorIfRepeatedTurnables
 
 
 turnParser : (Turnable -> String) -> OurParser Turn
@@ -1032,35 +1033,37 @@ errorIfNoTurnsInParentheses state startParenthesisIndex parser =
             )
 
 
-errorIfRepeatedTurnables : ParserState -> OurParser Turn -> OurParser Turn
-errorIfRepeatedTurnables state =
-    andThenWithInputStringAndOffset
-        (\( (Turn turnable _ _) as previousResult, inputString, _ ) ->
-            case
-                state.turnList
-                    |> List.head
-                    -- Change this to a tuple so we can destructure the turn in the
-                    -- below case statement
-                    |> Maybe.map (\x -> ( x.turn, x.startIndex, x.string ))
-            of
-                Just ( Turn previousTurnable _ _, lastTurnStartIndex, lastTurnString ) ->
-                    if previousTurnable == turnable then
-                        Parser.problem
-                            (UserReadyError <|
-                                RepeatedTurnable
-                                    { inputString = inputString
-                                    , errorIndex =
-                                        lastTurnStartIndex
-                                            + String.length lastTurnString
-                                    }
-                            )
+errorIfRepeatedTurnables : OurParser (Parser.Step ParserState a) -> OurParser (Parser.Step ParserState a)
+errorIfRepeatedTurnables parser =
+    parser
+        |> andThenWithInputStringAndOffset
+            (\( step, inputString, _ ) ->
+                case step of
+                    Parser.Done _ ->
+                        Parser.succeed step
 
-                    else
-                        Parser.succeed previousResult
+                    Parser.Loop state ->
+                        case
+                            List.map
+                                (\x -> ( x.turn, x.startIndex ))
+                                state.turnList
+                        of
+                            ( Turn currentTurnable _ _, currentTurnStartIndex ) :: ( Turn previousTurnable _ _, _ ) :: _ ->
+                                if currentTurnable == previousTurnable then
+                                    Parser.problem
+                                        (UserReadyError <|
+                                            RepeatedTurnable
+                                                { inputString = inputString
+                                                , errorIndex = currentTurnStartIndex
+                                                }
+                                        )
 
-                Nothing ->
-                    Parser.succeed previousResult
-        )
+                                else
+                                    Parser.succeed step
+
+                            _ ->
+                                Parser.succeed step
+            )
 
 
 detectIfTurnWasInterrupted : (Turnable -> String) -> ParserState -> OurParser a

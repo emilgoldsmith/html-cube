@@ -653,7 +653,10 @@ fromString string =
                     else
                         lowercase
             in
-            if stringIsWideMove laterError.invalidTurnable then
+            if
+                stringIsWideMove twoCharacter.invalidTurnable
+                    && stringIsWideMove lowercase.invalidTurnable
+            then
                 Err
                     (WideMoveStylesMixed
                         { inputString = laterError.inputString
@@ -662,8 +665,18 @@ fromString string =
                         }
                     )
 
+            else if stringIsWideMove twoCharacter.invalidTurnable then
+                lowercaseWideMovesResult
+
             else
                 twoCharacterWideMovesResult
+
+        ( Err (InvalidTurnable _), _ ) ->
+            -- The intent here is to check if the error is a wide move error
+            -- for the two character case as then we want to use the lowercase
+            -- error, but since we could just as well default to lowercase if its
+            -- not a wide move invalid turnable we just always do that
+            lowercaseWideMovesResult
 
         _ ->
             twoCharacterWideMovesResult

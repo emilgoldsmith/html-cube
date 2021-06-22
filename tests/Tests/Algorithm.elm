@@ -392,6 +392,26 @@ fromStringTests =
                                 , invalidWideMove = "Uw"
                                 }
                         )
+        , test "lowercase wide move before unmatched closing parenthesis regression" <|
+            \_ ->
+                Algorithm.fromString "U2 r B' ) F2"
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.UnmatchedClosingParenthesis
+                                { inputString = "U2 r B' ) F2"
+                                , errorIndex = 8
+                                }
+                        )
+        , test "two character wide move before unmatched closing parenthesis regression" <|
+            \_ ->
+                Algorithm.fromString "U2 Rw B' ) F2"
+                    |> Expect.equal
+                        (Err <|
+                            Algorithm.UnmatchedClosingParenthesis
+                                { inputString = "U2 Rw B' ) F2"
+                                , errorIndex = 9
+                                }
+                        )
         ]
 
 

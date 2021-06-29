@@ -1,6 +1,6 @@
 module AUF exposing
     ( AUF(..), all
-    , toAlgorithm, toString, FromStringError(..), debugFromStringError, fromString
+    , toAlgorithm, toAlgorithmWithCustomTurnable, toString, FromStringError(..), debugFromStringError, fromString
     )
 
 {-| Types and helpers to deal with Adjust U Face (AUF), which
@@ -19,7 +19,7 @@ for more information
 
 # Helpers
 
-@docs toAlgorithm, toString, FromStringError, debugFromStringError, fromString
+@docs toAlgorithm, toAlgorithmWithCustomTurnable, toString, FromStringError, debugFromStringError, fromString
 
 -}
 
@@ -128,6 +128,55 @@ toAlgorithm auf =
             Algorithm.fromTurnList
                 [ Algorithm.Turn
                     Algorithm.U
+                    Algorithm.OneQuarter
+                    Algorithm.CounterClockwise
+                ]
+
+
+{-| Get the algorithm that corresponds to the AUF, but
+be able to specify which turnable to use to do the AUF.
+This is especially relevant for usecases such as an
+algorithm does an x or z rotation (or wide move) in
+the algorithm so the AUF is actually executed on a non-U
+face
+
+    import Algorithm
+
+    toAlgorithmWithCustomTurnable Algorithm.B Halfway
+    -->  Algorithm.fromTurnList
+    -->    [ Algorithm.Turn
+    -->        Algorithm.B
+    -->        Algorithm.Halfway
+    -->        Algorithm.Clockwise
+    -->    ]
+
+-}
+toAlgorithmWithCustomTurnable : Algorithm.Turnable -> AUF -> Algorithm
+toAlgorithmWithCustomTurnable turnable auf =
+    case auf of
+        None ->
+            Algorithm.empty
+
+        Clockwise ->
+            Algorithm.fromTurnList
+                [ Algorithm.Turn
+                    turnable
+                    Algorithm.OneQuarter
+                    Algorithm.Clockwise
+                ]
+
+        Halfway ->
+            Algorithm.fromTurnList
+                [ Algorithm.Turn
+                    turnable
+                    Algorithm.Halfway
+                    Algorithm.Clockwise
+                ]
+
+        CounterClockwise ->
+            Algorithm.fromTurnList
+                [ Algorithm.Turn
+                    turnable
                     Algorithm.OneQuarter
                     Algorithm.CounterClockwise
                 ]

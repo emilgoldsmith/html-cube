@@ -3,7 +3,7 @@ module Algorithm exposing
     , fromTurnList, empty
     , toString, fromString, FromStringError(..), debugFromStringError
     , inverse, append, reverseAppend
-    , allTurns, allTurnables, allTurnLengths, allTurnDirections
+    , allCubeAngles, allTurns, allTurnables, allTurnLengths, allTurnDirections
     , toTurnList
     )
 
@@ -32,7 +32,7 @@ module Algorithm exposing
 
 # Enumerations
 
-@docs allTurns, allTurnables, allTurnLengths, allTurnDirections
+@docs allCubeAngles, allTurns, allTurnables, allTurnLengths, allTurnDirections
 
 
 # Advanced
@@ -1440,6 +1440,56 @@ alwaysError fn =
 
 
 -- TYPE ENUMERATORS (as lists)
+
+
+{-| 24 algorithms to rotate a cube to any of the 24
+unique angles it can be positioned in
+
+    import List.Nonempty
+
+    List.Nonempty.length allCubeAngles --> 24
+
+-}
+allCubeAngles : List.Nonempty.Nonempty Algorithm
+allCubeAngles =
+    let
+        eachDifferentFaceOnUpSide =
+            List.Nonempty.Nonempty empty
+                [ fromTurnList
+                    [ Turn X OneQuarter Clockwise
+                    ]
+                , fromTurnList
+                    [ Turn X Halfway Clockwise
+                    ]
+                , fromTurnList
+                    [ Turn X OneQuarter CounterClockwise
+                    ]
+                , fromTurnList
+                    [ Turn Z OneQuarter Clockwise
+                    ]
+                , fromTurnList
+                    [ Turn Z OneQuarter CounterClockwise
+                    ]
+                ]
+    in
+    List.Nonempty.concatMap withAllDifferentYRotations eachDifferentFaceOnUpSide
+
+
+withAllDifferentYRotations : Algorithm -> List.Nonempty.Nonempty Algorithm
+withAllDifferentYRotations algorithm =
+    List.Nonempty.map (append algorithm) <|
+        List.Nonempty.Nonempty
+            empty
+            [ fromTurnList
+                [ Turn Y OneQuarter Clockwise
+                ]
+            , fromTurnList
+                [ Turn Y Halfway Clockwise
+                ]
+            , fromTurnList
+                [ Turn Y OneQuarter CounterClockwise
+                ]
+            ]
 
 
 {-| All possible combinations of turnables, lengths and directions

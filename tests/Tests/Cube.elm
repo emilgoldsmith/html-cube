@@ -1,4 +1,4 @@
-module Tests.Cube exposing (applyAlgorithmTests, testHelperTests)
+module Tests.Cube exposing (algorithmResultsAreEquivalentIndependentOfFinalRotationTests, algorithmResultsAreEquivalentTests, applyAlgorithmTests, testHelperTests)
 
 import Algorithm
 import Cube
@@ -12,7 +12,7 @@ import Monads.ListM as ListM
 import Parser exposing ((|.), (|=))
 import Test exposing (..)
 import TestHelpers.Cube exposing (cubeFuzzer, solvedCubeRendering)
-import Tests.Algorithm exposing (algorithmFuzzer, turnDirectionFuzzer, turnFuzzer, turnableFuzzer)
+import Tests.Algorithm exposing (algorithmFuzzer, rotationFuzzer, turnDirectionFuzzer, turnFuzzer, turnableFuzzer)
 
 
 applyAlgorithmTests : Test
@@ -363,6 +363,42 @@ applyAlgorithmTests =
         ]
 
 
+algorithmResultsAreEquivalentTests : Test
+algorithmResultsAreEquivalentTests =
+    describe "algorithmResultsAreEquivalent"
+        [ fuzz commutativePairsFuzzer "commutative pairs are equivalent algorithms in any order" <|
+            \( turn1, turn2 ) ->
+                Cube.algorithmResultsAreEquivalent
+                    (Algorithm.fromTurnList [ turn1, turn2 ])
+                    (Algorithm.fromTurnList [ turn2, turn1 ])
+                    |> Expect.true "Algorithms should produce the same result"
+        , fuzz nonCommutativePairsFuzzer "non commutative pairs are not equivalent algorithms in any order" <|
+            \( turn1, turn2 ) ->
+                Cube.algorithmResultsAreEquivalent
+                    (Algorithm.fromTurnList [ turn1, turn2 ])
+                    (Algorithm.fromTurnList [ turn2, turn1 ])
+                    |> Expect.false "Algorithms should not produce the same result"
+        ]
+
+
+algorithmResultsAreEquivalentIndependentOfFinalRotationTests : Test
+algorithmResultsAreEquivalentIndependentOfFinalRotationTests =
+    describe "algorithmResultsAreEquivalentIndependentOfFinalRotation"
+        [ fuzz3 commutativePairsFuzzer rotationFuzzer rotationFuzzer "commutative pairs are equivalent algorithms in any order also independent of final rotations applied" <|
+            \( turn1, turn2 ) rotation1 rotation2 ->
+                Cube.algorithmResultsAreEquivalentIndependentOfFinalRotation
+                    (Algorithm.fromTurnList [ turn1, turn2 ] |> Algorithm.reverseAppend rotation1)
+                    (Algorithm.fromTurnList [ turn2, turn1 ] |> Algorithm.reverseAppend rotation2)
+                    |> Expect.true "Algorithms should produce the same result"
+        , fuzz nonCommutativePairsExcludingRotationsFuzzer "non commutative pairs are not equivalent algorithms in any order" <|
+            \( turn1, turn2 ) ->
+                Cube.algorithmResultsAreEquivalentIndependentOfFinalRotation
+                    (Algorithm.fromTurnList [ turn1, turn2 ])
+                    (Algorithm.fromTurnList [ turn2, turn1 ])
+                    |> Expect.false "Algorithms should not produce the same result"
+        ]
+
+
 testHelperTests : Test
 testHelperTests =
     describe "test helper tests"
@@ -430,11 +466,27 @@ nonCommutativePairsFuzzer =
         |> Fuzz.oneOf
 
 
+nonCommutativePairsExcludingRotationsFuzzer : Fuzz.Fuzzer ( Algorithm.Turn, Algorithm.Turn )
+nonCommutativePairsExcludingRotationsFuzzer =
+    nonCommutativePairsExcludingRotations
+        |> List.map Fuzz.constant
+        |> Fuzz.oneOf
+
+
 nonCommutativePairs : List ( Algorithm.Turn, Algorithm.Turn )
 nonCommutativePairs =
     uniqueCartesianProductWithSelf Algorithm.allTurns
         |> List.Nonempty.toList
         |> List.filter (\anyPair -> not <| List.member anyPair commutativePairs)
+
+
+nonCommutativePairsExcludingRotations : List ( Algorithm.Turn, Algorithm.Turn )
+nonCommutativePairsExcludingRotations =
+    List.filter
+        (\( Algorithm.Turn turnable1 _ _, Algorithm.Turn turnable2 _ _ ) ->
+            not (isWholeRotation turnable1) && not (isWholeRotation turnable2)
+        )
+        nonCommutativePairs
 
 
 commutativePairs : List ( Algorithm.Turn, Algorithm.Turn )

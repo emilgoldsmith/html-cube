@@ -1,14 +1,15 @@
-module Cube exposing (Cube(..), applyAlgorithm, solved, viewUBLWithLetters, viewUFRNoLetters, viewUFRWithLetters)
+module Cube exposing (Cube(..), applyAlgorithm, solved, viewUBLWithLetters, viewUFRNoLetters, viewUFRWithLetters, algorithmResultsAreEquivalent, algorithmResultsAreEquivalentIndependentOfFinalRotation)
 
 {-| Documentation to come
 
-@docs Cube, applyAlgorithm, solved, viewUBLWithLetters, viewUFRNoLetters, viewUFRWithLetters
+@docs Cube, applyAlgorithm, solved, viewUBLWithLetters, viewUFRNoLetters, viewUFRWithLetters, algorithmResultsAreEquivalent, algorithmResultsAreEquivalentIndependentOfFinalRotation
 
 -}
 
-import Algorithm
+import Algorithm exposing (Algorithm)
 import Html
 import Internal.Cube
+import List.Nonempty
 
 
 {-| Placeholder
@@ -26,7 +27,7 @@ map fn (Cube cube) =
 
 {-| Placeholder
 -}
-applyAlgorithm : Algorithm.Algorithm -> Cube -> Cube
+applyAlgorithm : Algorithm -> Cube -> Cube
 applyAlgorithm algorithm =
     map <| Internal.Cube.applyAlgorithm algorithm
 
@@ -57,3 +58,21 @@ viewUFRNoLetters attributes size (Cube cube) =
 viewUFRWithLetters : List (Html.Attribute msg) -> Int -> Cube -> Html.Html msg
 viewUFRWithLetters attributes size (Cube cube) =
     Internal.Cube.viewUFRWithLetters attributes size cube
+
+
+{-| Placeholder
+-}
+algorithmResultsAreEquivalent : Algorithm -> Algorithm -> Bool
+algorithmResultsAreEquivalent a b =
+    solved
+        |> applyAlgorithm a
+        |> applyAlgorithm (Algorithm.inverse b)
+        |> (==) solved
+
+
+{-| Placeholder
+-}
+algorithmResultsAreEquivalentIndependentOfFinalRotation : Algorithm -> Algorithm -> Bool
+algorithmResultsAreEquivalentIndependentOfFinalRotation a b =
+    List.Nonempty.map (Algorithm.append a) Algorithm.allCubeAngles
+        |> List.Nonempty.any (algorithmResultsAreEquivalent b)

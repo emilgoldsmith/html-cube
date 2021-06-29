@@ -12,6 +12,7 @@ import PLL exposing (PLL)
 import Test exposing (..)
 import TestHelpers.Cube exposing (plainCubie, solvedCubeRendering)
 import Tests.AUF exposing (aufFuzzer)
+import Tests.Algorithm exposing (rotationFuzzer)
 
 
 referenceAlgTests : Test
@@ -303,18 +304,19 @@ solvedByTests =
             \_ ->
                 PLL.solvedBy Algorithm.empty PLL.Aa
                     |> Expect.false "Aa PLL was deemed solved by an empty algorithm"
-        , fuzz3 aufFuzzer aufFuzzer pllFuzzer "pll is solved by its reference algorithm no matter what auf combination applied to it" <|
-            \preAUF postAUF pll ->
+        , fuzz3 (Fuzz.tuple ( aufFuzzer, aufFuzzer )) rotationFuzzer pllFuzzer "pll is solved by its reference algorithm no matter what auf combination or rotation applied to it" <|
+            \( preAUF, postAUF ) rotation pll ->
                 let
                     referenceAlgorithm =
                         PLL.getAlgorithm PLL.referenceAlgorithms pll
 
-                    withAUFs =
+                    withAUFsAndRotation =
                         Algorithm.append (AUF.toAlgorithm preAUF) referenceAlgorithm
                             |> Algorithm.reverseAppend (AUF.toAlgorithm postAUF)
+                            |> Algorithm.reverseAppend rotation
                 in
                 PLL.solvedBy
-                    withAUFs
+                    withAUFsAndRotation
                     pll
                     |> Expect.true
                         ("PLL "
@@ -326,23 +328,49 @@ solvedByTests =
                                 else
                                     AUF.toString preAUF
                                )
-                            ++ " and post AUF "
+                            ++ ", post AUF "
                             ++ (if String.isEmpty <| AUF.toString postAUF then
                                     "none"
 
                                 else
                                     AUF.toString postAUF
                                )
+                            ++ " and rotation "
+                            ++ (if rotation == Algorithm.empty then
+                                    "none"
+
+                                else
+                                    Algorithm.toString rotation
+                               )
                         )
         , test "first version of an H perm passes H perm" <|
             \_ ->
-                Algorithm.fromString "F2 M2' F2 U' F2 M2' F2"
+                Algorithm.fromString "F2 M2' F2 U' F2 M2' F2 y2"
                     |> Result.map (\alg -> PLL.solvedBy alg PLL.H)
                     |> Expect.equal (Ok True)
         , test "second version of an H perm passes H perm" <|
             \_ ->
                 Algorithm.fromString "S R U2 R2 U2 R2 U2 R S'"
                     |> Result.map (\alg -> PLL.solvedBy alg PLL.H)
+                    |> Expect.equal (Ok True)
+        , test "an Ra perm with a y rotation works" <|
+            \_ ->
+                -- Taken from http://algdb.net/puzzle/333/pll/ra
+                Algorithm.fromString "y R U R' F' R U2 R' U2 R' F R U R U2 R'"
+                    |> Result.map (\alg -> PLL.solvedBy alg PLL.Ra)
+                    |> Expect.equal (Ok True)
+        , test "an Aa perm with a wide move that leaves cube with x rotation works" <|
+            \_ ->
+                -- Taken from http://algdb.net/puzzle/333/pll/aa
+                Algorithm.fromString "l' U R' D2 R U' R' D2 R2"
+                    |> Result.map (\alg -> PLL.solvedBy alg PLL.Aa)
+                    |> Expect.equal (Ok True)
+        , test "an Aa perm with different final AUF and a wide move that leaves cube with x rotation works" <|
+            \_ ->
+                -- Taken from http://algdb.net/puzzle/333/pll/aa
+                -- with an addition of B which corresponds to U after the wide move
+                Algorithm.fromString "l' U R' D2 R U' R' D2 R2 B"
+                    |> Result.map (\alg -> PLL.solvedBy alg PLL.Aa)
                     |> Expect.equal (Ok True)
         ]
 

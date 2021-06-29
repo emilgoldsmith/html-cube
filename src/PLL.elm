@@ -29,6 +29,8 @@ for further information
 import AUF
 import Algorithm exposing (Algorithm)
 import Cube
+import Cube.Advanced
+import Cube.Advanced.Types
 import List.Nonempty
 import Utils.Enumerator
 
@@ -265,6 +267,22 @@ pass this as seen in these examples:
 solvedBy : Algorithm -> PLL -> Bool
 solvedBy algorithm pll =
     let
+        { u, f, b, l, r, d } =
+            Cube.Advanced.render (Cube.applyAlgorithm algorithm Cube.solved)
+
+        aufTurnable =
+            [ ( u.u, Algorithm.U )
+            , ( d.d, Algorithm.D )
+            , ( f.f, Algorithm.F )
+            , ( b.b, Algorithm.B )
+            , ( l.l, Algorithm.L )
+            , ( r.r, Algorithm.R )
+            ]
+                |> List.filter (Tuple.first >> (==) Cube.Advanced.Types.UpColor)
+                |> List.head
+                |> Maybe.map Tuple.second
+                |> Maybe.withDefault Algorithm.U
+
         allAufCombinations =
             List.Nonempty.concatMap
                 (\preAUF -> List.Nonempty.map (Tuple.pair preAUF) AUF.all)
@@ -273,18 +291,11 @@ solvedBy algorithm pll =
     List.Nonempty.any
         (\( preAUF, postAUF ) ->
             Algorithm.append (AUF.toAlgorithm preAUF) algorithm
-                |> Algorithm.reverseAppend (AUF.toAlgorithm postAUF)
-                |> algorithmsAreEquivalent (getAlgorithm referenceAlgorithms pll)
+                |> Algorithm.reverseAppend (AUF.toAlgorithmWithCustomTurnable aufTurnable postAUF)
+                |> Cube.algorithmResultsAreEquivalentIndependentOfFinalRotation
+                    (getAlgorithm referenceAlgorithms pll)
         )
         allAufCombinations
-
-
-algorithmsAreEquivalent : Algorithm -> Algorithm -> Bool
-algorithmsAreEquivalent a b =
-    Cube.solved
-        |> Cube.applyAlgorithm a
-        |> Cube.applyAlgorithm (Algorithm.inverse b)
-        |> (==) Cube.solved
 
 
 

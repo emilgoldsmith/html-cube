@@ -103,34 +103,8 @@ all =
 
 -}
 toAlgorithm : AUF -> Algorithm
-toAlgorithm auf =
-    case auf of
-        None ->
-            Algorithm.empty
-
-        Clockwise ->
-            Algorithm.fromTurnList
-                [ Algorithm.Turn
-                    Algorithm.U
-                    Algorithm.OneQuarter
-                    Algorithm.Clockwise
-                ]
-
-        Halfway ->
-            Algorithm.fromTurnList
-                [ Algorithm.Turn
-                    Algorithm.U
-                    Algorithm.Halfway
-                    Algorithm.Clockwise
-                ]
-
-        CounterClockwise ->
-            Algorithm.fromTurnList
-                [ Algorithm.Turn
-                    Algorithm.U
-                    Algorithm.OneQuarter
-                    Algorithm.CounterClockwise
-                ]
+toAlgorithm =
+    toAlgorithmWithCustomTurnable Algorithm.U
 
 
 {-| Get the algorithm that corresponds to the AUF, but

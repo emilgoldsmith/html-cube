@@ -345,7 +345,7 @@ solvedByTests =
                         )
         , test "first version of an H perm passes H perm" <|
             \_ ->
-                Algorithm.fromString "F2 M2' F2 U' F2 M2' F2 y2"
+                Algorithm.fromString "F2 M2' F2 U' F2 M2' F2"
                     |> Result.map (\alg -> PLL.solvedBy alg PLL.H)
                     |> Expect.equal (Ok True)
         , test "second version of an H perm passes H perm" <|

@@ -889,8 +889,10 @@ renderDirection dir =
 
 rotationFuzzer : Fuzz.Fuzzer Algorithm
 rotationFuzzer =
-    Fuzz.oneOf
-        (List.map Fuzz.constant (List.Nonempty.toList Algorithm.allCubeAngles))
+    Algorithm.allCubeAngles
+        |> List.Nonempty.toList
+        |> List.map Fuzz.constant
+        |> Fuzz.oneOf
 
 
 twoMembersOfList : List.Nonempty.Nonempty a -> Fuzz.Fuzzer (Maybe ( a, a ))
@@ -900,22 +902,22 @@ twoMembersOfList list =
             (Array.fromList << List.Nonempty.toList) list
     in
     Fuzz.map2
-        (\index1 index2 ->
+        (\index1 nonAdjustedIndex2 ->
             let
-                realIndex2 =
+                adjustedIndex2 =
                     -- Since the second one picks a number of a list of
                     -- length one less, we just simulate that the previous
                     -- index element has already been removed by incrementing
                     -- the index if it has passed the removal point
-                    if index2 >= index1 then
-                        index2 + 1
+                    if nonAdjustedIndex2 >= index1 then
+                        nonAdjustedIndex2 + 1
 
                     else
-                        index2
+                        nonAdjustedIndex2
             in
             Maybe.andThen
                 (\definiteIndex1 ->
-                    Maybe.map (Tuple.pair definiteIndex1) (Array.get realIndex2 array)
+                    Maybe.map (Tuple.pair definiteIndex1) (Array.get adjustedIndex2 array)
                 )
                 (Array.get index1 array)
         )

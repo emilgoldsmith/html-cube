@@ -1,12 +1,16 @@
-module Internal.Cube exposing (Cube, applyAlgorithm, centerLocations, cornerLocations, edgeLocations, faces, render, solved, viewUBLWithLetters, viewUFRNoLetters, viewUFRWithLetters)
+module Internal.Cube exposing (AnimationMsg, AnimationState, Cube, animateAlgorithm, applyAlgorithm, centerLocations, cornerLocations, edgeLocations, faces, handleAnimationMsg, noAnimation, render, solved, viewAnimatable, viewUBLWithLetters, viewUFRNoLetters, viewUFRWithLetters)
 
-import Algorithm
+import Algorithm exposing (Algorithm)
 import Cube.Advanced.Types exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import Html.Events
+import Json.Decode
 import List.Nonempty
+import Process
 import Svg exposing (line, path, svg)
 import Svg.Attributes exposing (d, fill, stroke, strokeWidth, viewBox, x1, x2, y1, y2)
+import Task
 import Utils.Enumerator
 import Utils.MappedPermutation as MappedPermutation exposing (MappedPermutation)
 
@@ -2149,3 +2153,397 @@ getCenterCoordinates location =
             , fromLeft = 1
             , fromTop = 1
             }
+
+
+type alias AnimationState =
+    { toApply : List Algorithm.Turn
+    , alreadyApplied : Algorithm
+    , pause : Bool
+    }
+
+
+type AnimationMsg
+    = TurnFinished
+    | StartNextTurn
+
+
+viewAnimatable :
+    { cube : Cube
+    , animationState : AnimationState
+    , toMsg : AnimationMsg -> msg
+    , animationDoneMsg : msg
+    , size : Int
+    }
+    -> Html msg
+viewAnimatable { cube, size, animationState, toMsg, animationDoneMsg } =
+    let
+        nextTurn =
+            if animationState.pause then
+                Nothing
+
+            else
+                List.head animationState.toApply
+
+        currentCube =
+            applyAlgorithm animationState.alreadyApplied cube
+    in
+    getCubeHtml2 ufrRotation nextTurn [] size currentCube
+        |> Html.map toMsg
+
+
+animateAlgorithm : Algorithm -> AnimationState
+animateAlgorithm algorithm =
+    { toApply = Algorithm.toTurnList algorithm
+    , alreadyApplied = Algorithm.empty
+    , pause = False
+    }
+
+
+noAnimation : AnimationState
+noAnimation =
+    { toApply = [], alreadyApplied = Algorithm.empty, pause = True }
+
+
+handleAnimationMsg : AnimationState -> AnimationMsg -> ( AnimationState, Cmd AnimationMsg )
+handleAnimationMsg animationState msg =
+    case msg of
+        TurnFinished ->
+            if animationState.pause then
+                ( animationState, Cmd.none )
+
+            else
+                case animationState.toApply of
+                    [] ->
+                        ( { animationState | toApply = [], pause = True }
+                        , Task.perform (always StartNextTurn) (Process.sleep 0)
+                        )
+
+                    x :: xs ->
+                        ( { toApply = xs
+                          , alreadyApplied =
+                                Algorithm.append
+                                    animationState.alreadyApplied
+                                    (Algorithm.fromTurnList [ x ])
+                          , pause = True
+                          }
+                        , Task.perform (always StartNextTurn) (Process.sleep 0)
+                        )
+
+        StartNextTurn ->
+            ( { animationState | pause = False }, Cmd.none )
+
+
+getCubeHtml2 : Transformation -> Maybe Algorithm.Turn -> List (Attribute AnimationMsg) -> Size -> Cube -> Html AnimationMsg
+getCubeHtml2 rotation animationTurn attributes size cube =
+    let
+        rendering =
+            render cube
+    in
+    div
+        ([ style "width" (px <| containerSideLength size)
+         , style "height" (px <| containerSideLength size)
+         , style "display" "flex"
+         , style "justify-content" "center"
+         , style "align-items" "center"
+         , style "perspective" "0"
+         ]
+            ++ attributes
+        )
+        [ div
+            [ style "width" (px <| wholeCubeSideLength size)
+            , style "height" (px <| wholeCubeSideLength size)
+            , style "position" "relative"
+            , style "transform-style" "preserve-3d"
+            , cssTransformCube rotation (wholeCubeSideLength size)
+            ]
+          <|
+            List.map (\( a, b, _ ) -> displayCubie2 defaultTheme size b animationTurn a)
+                (getRenderedCorners rendering
+                    |> List.Nonempty.append
+                        (getRenderedEdges rendering)
+                    |> List.Nonempty.append
+                        (getRenderedCenters rendering)
+                    |> List.Nonempty.toList
+                )
+        ]
+
+
+displayCubie2 : CubeTheme -> Size -> Coordinates -> Maybe Algorithm.Turn -> CubieRendering -> Html AnimationMsg
+displayCubie2 theme size ({ fromFront, fromLeft, fromTop } as coordinates) animationTurn rendering =
+    div
+        (animationStyle
+            size
+            coordinates
+            animationTurn
+        )
+        [ div
+            [ style "position" "absolute"
+            , style "width" (px <| cubieSideLength size)
+            , style "height" (px <| cubieSideLength size)
+            , style "transform-style" "preserve-3d"
+            , style "display" "inline-block"
+
+            -- Position the cubie correctly
+            , style "top" (px <| cubieSideLength size * fromTop)
+            , style "left" (px <| cubieSideLength size * fromLeft)
+            , cssTransformCube [ ZTranslatePixels <| cubieSideLength size * fromFront * -1 ] (cubieSideLength size)
+            ]
+            (faces
+                |> List.Nonempty.map
+                    (\face ->
+                        displayCubieFace
+                            theme
+                            size
+                            face
+                            Nothing
+                            rendering
+                    )
+                |> List.Nonempty.toList
+            )
+        ]
+
+
+animationStyle : Size -> Coordinates -> Maybe Algorithm.Turn -> List (Attribute AnimationMsg)
+animationStyle size coordinates animationTurn =
+    animationTurn
+        |> Maybe.andThen
+            (\turn ->
+                if isCubieTurning turn coordinates then
+                    Just turn
+
+                else
+                    Nothing
+            )
+        |> Maybe.map
+            (\turn ->
+                [ Html.Events.on "transitionend" (Json.Decode.succeed TurnFinished)
+                , style "transition"
+                    ("transform "
+                        ++ String.fromInt (getTurnMilliseconds turn)
+                        ++ "ms"
+                    )
+                , style "transform"
+                    (getTurnTransformation turn)
+                , style "transform-style" "preserve-3d"
+                , style "transform-origin" <|
+                    String.fromInt (wholeCubeSideLength size // 2)
+                        ++ "px "
+                        ++ String.fromInt (wholeCubeSideLength size // 2)
+                        ++ "px "
+                        ++ String.fromInt (wholeCubeSideLength size // 2 * -1)
+                        ++ "px"
+                ]
+            )
+        |> Maybe.withDefault
+            [ style "transform-style" "preserve-3d"
+            ]
+
+
+isCubieTurning : Algorithm.Turn -> Coordinates -> Bool
+isCubieTurning (Algorithm.Turn turnable _ _) { fromFront, fromLeft, fromTop } =
+    case turnable of
+        Algorithm.U ->
+            fromTop == 0
+
+        Algorithm.E ->
+            fromTop == 1
+
+        Algorithm.D ->
+            fromTop == 2
+
+        Algorithm.Y ->
+            True
+
+        Algorithm.Uw ->
+            fromTop /= 2
+
+        Algorithm.Dw ->
+            fromTop /= 0
+
+        Algorithm.L ->
+            fromLeft == 0
+
+        Algorithm.M ->
+            fromLeft == 1
+
+        Algorithm.R ->
+            fromLeft == 2
+
+        Algorithm.Z ->
+            True
+
+        Algorithm.Rw ->
+            fromLeft /= 0
+
+        Algorithm.Lw ->
+            fromLeft /= 2
+
+        Algorithm.F ->
+            fromFront == 0
+
+        Algorithm.S ->
+            fromFront == 1
+
+        Algorithm.B ->
+            fromFront == 2
+
+        Algorithm.Fw ->
+            fromFront /= 2
+
+        Algorithm.Bw ->
+            fromFront /= 0
+
+        Algorithm.X ->
+            True
+
+
+getTurnMilliseconds : Algorithm.Turn -> Int
+getTurnMilliseconds (Algorithm.Turn _ turnLength _) =
+    case turnLength of
+        Algorithm.OneQuarter ->
+            750
+
+        Algorithm.Halfway ->
+            1250
+
+        Algorithm.ThreeQuarters ->
+            1750
+
+
+getTurnTransformation : Algorithm.Turn -> String
+getTurnTransformation (Algorithm.Turn turnable turnLength turnDirection) =
+    let
+        degrees =
+            case turnLength of
+                Algorithm.OneQuarter ->
+                    "90deg"
+
+                Algorithm.Halfway ->
+                    "180deg"
+
+                Algorithm.ThreeQuarters ->
+                    "270deg"
+
+        axis =
+            case turnable of
+                Algorithm.U ->
+                    "Y"
+
+                Algorithm.E ->
+                    "Y"
+
+                Algorithm.D ->
+                    "Y"
+
+                Algorithm.Y ->
+                    "Y"
+
+                Algorithm.Uw ->
+                    "Y"
+
+                Algorithm.Dw ->
+                    "Y"
+
+                Algorithm.L ->
+                    "X"
+
+                Algorithm.M ->
+                    "X"
+
+                Algorithm.R ->
+                    "X"
+
+                Algorithm.Z ->
+                    "X"
+
+                Algorithm.Rw ->
+                    "X"
+
+                Algorithm.Lw ->
+                    "X"
+
+                Algorithm.F ->
+                    "Z"
+
+                Algorithm.S ->
+                    "Z"
+
+                Algorithm.B ->
+                    "Z"
+
+                Algorithm.Fw ->
+                    "Z"
+
+                Algorithm.Bw ->
+                    "Z"
+
+                Algorithm.X ->
+                    "Z"
+
+        shouldHaveMinusSign =
+            case turnable of
+                Algorithm.U ->
+                    turnDirection == Algorithm.Clockwise
+
+                Algorithm.E ->
+                    turnDirection == Algorithm.Clockwise
+
+                Algorithm.D ->
+                    turnDirection == Algorithm.CounterClockwise
+
+                Algorithm.Y ->
+                    turnDirection == Algorithm.CounterClockwise
+
+                Algorithm.Uw ->
+                    turnDirection == Algorithm.CounterClockwise
+
+                Algorithm.Dw ->
+                    turnDirection == Algorithm.Clockwise
+
+                Algorithm.L ->
+                    turnDirection == Algorithm.Clockwise
+
+                Algorithm.M ->
+                    turnDirection == Algorithm.Clockwise
+
+                Algorithm.R ->
+                    turnDirection == Algorithm.CounterClockwise
+
+                Algorithm.Z ->
+                    turnDirection == Algorithm.CounterClockwise
+
+                Algorithm.Rw ->
+                    turnDirection == Algorithm.CounterClockwise
+
+                Algorithm.Lw ->
+                    turnDirection == Algorithm.CounterClockwise
+
+                Algorithm.F ->
+                    turnDirection == Algorithm.CounterClockwise
+
+                Algorithm.S ->
+                    turnDirection == Algorithm.CounterClockwise
+
+                Algorithm.B ->
+                    turnDirection == Algorithm.CounterClockwise
+
+                Algorithm.Fw ->
+                    turnDirection == Algorithm.CounterClockwise
+
+                Algorithm.Bw ->
+                    turnDirection == Algorithm.CounterClockwise
+
+                Algorithm.X ->
+                    turnDirection == Algorithm.CounterClockwise
+    in
+    "rotate"
+        ++ axis
+        ++ "("
+        ++ (if shouldHaveMinusSign then
+                "-"
+
+            else
+                ""
+           )
+        ++ degrees
+        ++ ")"

@@ -1,13 +1,13 @@
-module Cube exposing (Cube(..), applyAlgorithm, solved, viewUBLWithLetters, viewUFRNoLetters, viewUFRWithLetters, algorithmResultsAreEquivalent, algorithmResultsAreEquivalentIndependentOfFinalRotation)
+module Cube exposing (Cube(..), applyAlgorithm, solved, viewUBLWithLetters, viewUFRNoLetters, viewUFRWithLetters, algorithmResultsAreEquivalent, algorithmResultsAreEquivalentIndependentOfFinalRotation, AnimationState, AnimationMsg, viewAnimatable, noAnimation, animateAlgorithm, handleAnimationMsg)
 
 {-| Documentation to come
 
-@docs Cube, applyAlgorithm, solved, viewUBLWithLetters, viewUFRNoLetters, viewUFRWithLetters, algorithmResultsAreEquivalent, algorithmResultsAreEquivalentIndependentOfFinalRotation
+@docs Cube, applyAlgorithm, solved, viewUBLWithLetters, viewUFRNoLetters, viewUFRWithLetters, algorithmResultsAreEquivalent, algorithmResultsAreEquivalentIndependentOfFinalRotation, AnimationState, AnimationMsg, viewAnimatable, noAnimation, animateAlgorithm, handleAnimationMsg
 
 -}
 
 import Algorithm exposing (Algorithm)
-import Html
+import Html exposing (Html)
 import Internal.Cube
 import List.Nonempty
 
@@ -16,6 +16,50 @@ import List.Nonempty
 -}
 type Cube
     = Cube Internal.Cube.Cube
+
+
+{-| Placeholder
+-}
+type alias AnimationState =
+    Internal.Cube.AnimationState
+
+
+{-| Placeholder
+-}
+type alias AnimationMsg =
+    Internal.Cube.AnimationMsg
+
+
+{-| Placeholder
+-}
+viewAnimatable : { cube : Cube, size : Int, animationState : AnimationState, toMsg : AnimationMsg -> msg, animationDoneMsg : msg } -> Html msg
+viewAnimatable arguments =
+    let
+        (Cube internalCube) =
+            arguments.cube
+    in
+    Internal.Cube.viewAnimatable { cube = internalCube, animationState = arguments.animationState, toMsg = arguments.toMsg, animationDoneMsg = arguments.animationDoneMsg, size = arguments.size }
+
+
+{-| Placeholder
+-}
+noAnimation : AnimationState
+noAnimation =
+    Internal.Cube.noAnimation
+
+
+{-| Placeholder
+-}
+handleAnimationMsg : AnimationState -> AnimationMsg -> ( AnimationState, Cmd AnimationMsg )
+handleAnimationMsg =
+    Internal.Cube.handleAnimationMsg
+
+
+{-| Placeholder
+-}
+animateAlgorithm : Algorithm -> AnimationState
+animateAlgorithm =
+    Internal.Cube.animateAlgorithm
 
 
 {-| Placeholder
@@ -41,21 +85,21 @@ solved =
 
 {-| Placeholder
 -}
-viewUBLWithLetters : List (Html.Attribute msg) -> Int -> Cube -> Html.Html msg
+viewUBLWithLetters : List (Html.Attribute msg) -> Int -> Cube -> Html msg
 viewUBLWithLetters attributes size (Cube cube) =
     Internal.Cube.viewUBLWithLetters attributes size cube
 
 
 {-| Placeholder
 -}
-viewUFRNoLetters : List (Html.Attribute msg) -> Int -> Cube -> Html.Html msg
+viewUFRNoLetters : List (Html.Attribute msg) -> Int -> Cube -> Html msg
 viewUFRNoLetters attributes size (Cube cube) =
     Internal.Cube.viewUFRNoLetters attributes size cube
 
 
 {-| Placeholder
 -}
-viewUFRWithLetters : List (Html.Attribute msg) -> Int -> Cube -> Html.Html msg
+viewUFRWithLetters : List (Html.Attribute msg) -> Int -> Cube -> Html msg
 viewUFRWithLetters attributes size (Cube cube) =
     Internal.Cube.viewUFRWithLetters attributes size cube
 
